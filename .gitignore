@@ -1,0 +1,36 @@
+# Dipendenze Node.js
+node_modules/
+
+# File di ambiente (contengono dati sensibili)
+.env
+.env.local
+.env.*.local
+
+# Database locale (generato da init-project)
+database.db
+*.db
+*.sqlite
+
+# File di log
+logs/
+*.log
+npm-debug.log*
+
+# Directory di build/output
+dist/
+build/
+
+# File di sistema OS
+.DS_Store
+Thumbs.db
+
+# File dell'editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# File di upload locali (non versionare i media caricati)
+public/uploads/
