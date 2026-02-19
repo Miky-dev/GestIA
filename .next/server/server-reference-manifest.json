@@ -1,0 +1,19 @@
+{
+  "node": {
+    "40e00a022cd03137dcc2b55e57e140b9fea2eed965": {
+      "workers": {
+        "app/(auth)/login/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cmikyv%5C%5COneDrive%5C%5CDesktop%5C%5CCOSE%5C%5Cprogetti%5C%5CSOFTWARE%20GESTIONALE%5C%5Cgestia%5C%5Csrc%5C%5Cactions%5C%5Cauth.ts%22%2C%5B%7B%22id%22%3A%2240e00a022cd03137dcc2b55e57e140b9fea2eed965%22%2C%22exportedName%22%3A%22loginUser%22%2C%22filename%22%3A%22..%2FC%3A%5C%5CUsers%5C%5Cmikyv%5C%5COneDrive%5C%5CDesktop%5C%5CCOSE%5C%5Cprogetti%5C%5CSOFTWARE%20GESTIONALE%5C%5Cgestia%5C%5Csrc%5C%5Cactions%5C%5Cauth.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(auth)/login/page": "action-browser"
+      },
+      "filename": "../C:\\Users\\mikyv\\OneDrive\\Desktop\\COSE\\progetti\\SOFTWARE GESTIONALE\\gestia\\src\\actions\\auth.ts",
+      "exportedName": "loginUser"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "W1LRe0c6HmhkbkBztvgdSc6GRSJgS/wY17v9CBpFORw="
+}
