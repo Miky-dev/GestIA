@@ -161,23 +161,107 @@ export default async function CustomerDetailPage({
                 </TabsContent>
 
                 <TabsContent value="appointments">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <CalendarDays className="h-5 w-5 text-zinc-500" />
-                                Prossimi Appuntamenti
-                            </CardTitle>
-                            <CardDescription>Gestisci le prenotazioni e gli incontri.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-64 flex items-center justify-center bg-zinc-50/50 rounded-lg border border-dashed border-zinc-200 mx-6 mb-6">
-                            <div className="text-center text-zinc-400">
-                                <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                <p>Modulo Appuntamenti in sviluppo...</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <AppointmentsTabContent customerId={customer.id} />
                 </TabsContent>
             </Tabs>
         </div>
     );
 }
+
+async function AppointmentsTabContent({ customerId }: { customerId: string }) {
+    const { getAppointmentsByCustomerId } = await import("@/actions/calendar");
+    const result = await getAppointmentsByCustomerId(customerId);
+    const appointments = (result.success && result.data) ? result.data : [];
+
+    if (appointments.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <CalendarDays className="h-5 w-5 text-zinc-500" />
+                        Prossimi Appuntamenti
+                    </CardTitle>
+                    <CardDescription>Gestisci le prenotazioni e gli incontri.</CardDescription>
+                </CardHeader>
+                <CardContent className="h-64 flex flex-col items-center justify-center bg-zinc-50/50 rounded-lg border border-dashed border-zinc-200 mx-6 mb-6">
+                    <div className="text-center text-zinc-400">
+                        <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Nessun appuntamento trovato per questo cliente.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    // Helper per formattare lo stato
+    const getStatusBadge = (status: string) => {
+        const styles: Record<string, string> = {
+            SCHEDULED: "bg-blue-100 text-blue-700 border-blue-200",
+            COMPLETED: "bg-green-100 text-green-700 border-green-200",
+            CANCELLED: "bg-red-100 text-red-700 border-red-200",
+            NO_SHOW: "bg-zinc-100 text-zinc-700 border-zinc-200",
+        };
+        const labels: Record<string, string> = {
+            SCHEDULED: "Programmato",
+            COMPLETED: "Completato",
+            CANCELLED: "Cancellato",
+            NO_SHOW: "No Show",
+        };
+        return (
+            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${styles[status] || "bg-gray-100 text-gray-700"}`}>
+                {labels[status] || status}
+            </span>
+        );
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <CalendarDays className="h-5 w-5 text-zinc-500" />
+                    Storico Appuntamenti
+                </CardTitle>
+                <CardDescription>
+                    Tutti gli appuntamenti passati e futuri con questo cliente.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {appointments.map((apt: any) => (
+                        <div
+                            key={apt.id}
+                            className="flex items-center justify-between p-4 rounded-lg border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 transition-colors"
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className="h-10 w-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 font-medium text-sm shrink-0 shadow-sm">
+                                    {format(new Date(apt.startTime), "d", { locale: it })}
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-zinc-900">
+                                        {format(new Date(apt.startTime), "EEEE, d MMMM yyyy", { locale: it })}
+                                    </h4>
+                                    <div className="text-sm text-zinc-500 flex items-center gap-2 mt-1">
+                                        <span>
+                                            {format(new Date(apt.startTime), "HH:mm", { locale: it })} - {format(new Date(apt.endTime), "HH:mm", { locale: it })}
+                                        </span>
+                                        <span className="text-zinc-300">•</span>
+                                        <span>{apt.serviceType}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                {getStatusBadge(apt.status)}
+                                {apt.price && (
+                                    <span className="text-sm font-medium text-zinc-900">
+                                        € {Number(apt.price).toFixed(2)}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+

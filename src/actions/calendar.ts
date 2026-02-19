@@ -5,6 +5,38 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 /**
+ * Recupera gli appuntamenti di un cliente specifico.
+ * Strict Multi-tenant: Filtra sempre per companyId.
+ */
+export async function getAppointmentsByCustomerId(customerId: string) {
+    const session = await auth();
+
+    if (!session?.user?.companyId) {
+        throw new Error('Non autorizzato: Sessione o Company ID mancante');
+    }
+
+    try {
+        const appointments = await prisma.appointment.findMany({
+            where: {
+                companyId: session.user.companyId,
+                customerId: customerId,
+            },
+            include: {
+                customer: true,
+            },
+            orderBy: {
+                startTime: 'desc', // Dal più recente
+            },
+        });
+
+        return { success: true, data: appointments };
+    } catch (error) {
+        console.error('Errore nel recupero appuntamenti cliente:', error);
+        return { success: false, error: 'Impossibile recuperare gli appuntamenti del cliente' };
+    }
+}
+
+/**
  * Recupera gli appuntamenti in un determinato range di date.
  * Strict Multi-tenant: Filtra sempre per companyId.
  */
