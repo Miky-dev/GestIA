@@ -40,6 +40,10 @@ const customerSchema = z.object({
         .regex(/^(\+)?[0-9\s]+$/, "Il numero può contenere solo cifre e spazi"),
     email: z.string().email("Email non valida").optional().or(z.literal("")),
     internalNotes: z.string().optional(),
+    birthDate: z.string().optional(),
+    gender: z.string().optional(),
+    fiscalCode: z.string().optional(),
+    vatNumber: z.string().optional(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -54,6 +58,10 @@ interface CustomerSheetProps {
         phoneE164: string;
         email?: string | null;
         internalNotes?: string | null;
+        birthDate?: Date | null;
+        gender?: string | null;
+        fiscalCode?: string | null;
+        vatNumber?: string | null;
     } | null;
     trigger?: React.ReactNode; // Elemento che apre lo sheet
     onClose?: () => void; // Callback opzionale alla chiusura
@@ -107,6 +115,13 @@ export function CustomerSheet({
                 phone: customerToEdit.phoneE164,
                 email: customerToEdit.email || "",
                 internalNotes: customerToEdit.internalNotes || "",
+                // Converti Date a stringa YYYY-MM-DD per l'input type="date"
+                birthDate: customerToEdit.birthDate
+                    ? new Date(customerToEdit.birthDate).toISOString().split('T')[0]
+                    : "",
+                gender: customerToEdit.gender || "",
+                fiscalCode: customerToEdit.fiscalCode || "",
+                vatNumber: customerToEdit.vatNumber || "",
             });
         } else {
             form.reset({
@@ -115,6 +130,10 @@ export function CustomerSheet({
                 phone: "",
                 email: "",
                 internalNotes: "",
+                birthDate: "",
+                gender: "",
+                fiscalCode: "",
+                vatNumber: "",
             });
         }
     }, [customerToEdit, form]);
@@ -122,14 +141,20 @@ export function CustomerSheet({
     async function onSubmit(data: CustomerFormValues) {
         startTransition(async () => {
             try {
+                // Prepara i dati convertendo la data stringa in Date object se presente
+                const payload = {
+                    ...data,
+                    birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
+                };
+
                 if (isEditMode && customerToEdit) {
-                    await updateCustomer(customerToEdit.id, data);
+                    await updateCustomer(customerToEdit.id, payload);
                     toast({
                         title: "Cliente aggiornato",
                         description: `${data.firstName} ${data.lastName} è stato aggiornato correttamente.`,
                     });
                 } else {
-                    await createCustomer(data);
+                    await createCustomer(payload);
                     toast({
                         title: "Cliente creato",
                         description: `${data.firstName} ${data.lastName} è stato aggiunto alla lista.`,
@@ -240,6 +265,84 @@ export function CustomerSheet({
                                     </FormItem>
                                 )}
                             />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Data di Nascita */}
+                                <FormField
+                                    control={form.control}
+                                    name="birthDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Data di Nascita</FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Sesso */}
+                                <FormField
+                                    control={form.control}
+                                    name="gender"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Sesso</FormLabel>
+                                            <FormControl>
+                                                <select
+                                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    {...field}
+                                                    value={field.value || ""}
+                                                >
+                                                    <option value="">Seleziona</option>
+                                                    <option value="M">Maschio</option>
+                                                    <option value="F">Femmina</option>
+                                                    <option value="N">Altro</option>
+                                                </select>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Codice Fiscale */}
+                                <FormField
+                                    control={form.control}
+                                    name="fiscalCode"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Codice Fiscale</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Codice Fiscale"
+                                                    {...field}
+                                                    value={field.value || ""} // Gestione null/undefined
+                                                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Partita IVA */}
+                                <FormField
+                                    control={form.control}
+                                    name="vatNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Partita IVA</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Partita IVA" {...field} value={field.value || ""} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             {/* Note Interne */}
                             <FormField

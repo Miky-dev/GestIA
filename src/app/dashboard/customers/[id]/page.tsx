@@ -83,6 +83,40 @@ export default async function CustomerDetailPage({
                             {customer.internalNotes || "Nessuna nota interna."}
                         </div>
                     </div>
+
+                    <div className="space-y-4 md:col-span-2 pt-4 border-t border-zinc-100">
+                        <h3 className="font-medium text-sm text-zinc-900 uppercase tracking-wide">Dati Personali & Fiscali</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                <span className="text-xs text-zinc-500 block">Codice Fiscale</span>
+                                <span className="font-medium text-zinc-900">{customer.fiscalCode || "-"}</span>
+                            </div>
+                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                <span className="text-xs text-zinc-500 block">Partita IVA</span>
+                                <span className="font-medium text-zinc-900">{customer.vatNumber || "-"}</span>
+                            </div>
+                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                <span className="text-xs text-zinc-500 block">Data di Nascita</span>
+                                <span className="font-medium text-zinc-900">
+                                    {customer.birthDate
+                                        ? format(new Date(customer.birthDate), "d MMMM yyyy", { locale: it })
+                                        : "-"}
+                                </span>
+                            </div>
+                            <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                <span className="text-xs text-zinc-500 block">Sesso</span>
+                                <span className="font-medium text-zinc-900">
+                                    {customer.gender === "M"
+                                        ? "Maschio"
+                                        : customer.gender === "F"
+                                            ? "Femmina"
+                                            : customer.gender === "N"
+                                                ? "Altro"
+                                                : "-"}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 

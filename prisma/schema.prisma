@@ -111,6 +111,12 @@ model Customer {
   internalNotes String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  
+  // Dati Anagrafici
+  birthDate     DateTime?
+  gender        String?   // 'M', 'F', 'N'
+  fiscalCode    String?
+  vatNumber     String?
 
   // Relazioni
   company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)

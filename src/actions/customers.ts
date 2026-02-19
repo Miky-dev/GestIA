@@ -11,6 +11,10 @@ export type CreateCustomerData = {
     phone: string;
     email?: string;
     internalNotes?: string;
+    birthDate?: Date;
+    gender?: string;
+    fiscalCode?: string;
+    vatNumber?: string;
 };
 
 export type UpdateCustomerData = Partial<CreateCustomerData>;
@@ -77,6 +81,10 @@ export async function createCustomer(data: CreateCustomerData) {
             phoneE164,
             email: data.email || null,
             internalNotes: data.internalNotes || null,
+            birthDate: data.birthDate || null,
+            gender: data.gender || null,
+            fiscalCode: data.fiscalCode ? data.fiscalCode.toUpperCase() : null,
+            vatNumber: data.vatNumber || null,
         },
     });
 
@@ -122,6 +130,10 @@ export async function updateCustomer(id: string, data: UpdateCustomerData) {
             phoneE164: phoneE164,
             email: data.email,
             internalNotes: data.internalNotes,
+            birthDate: data.birthDate,
+            gender: data.gender,
+            fiscalCode: data.fiscalCode ? data.fiscalCode.toUpperCase() : undefined,
+            vatNumber: data.vatNumber,
         },
     });
 
