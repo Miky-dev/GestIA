@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 
 import {
     Table,
@@ -74,78 +74,79 @@ export function CustomersTable({ customers }: CustomersTableProps) {
 
     return (
         <>
-            <div className="rounded-md border border-zinc-200 bg-white">
+            <div className="rounded-md border border-zinc-200 bg-white shadow-sm overflow-hidden">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-zinc-50/50">
                         <TableRow>
-                            <TableHead className="w-[80px]">Avatar</TableHead>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Contatti</TableHead>
-                            <TableHead>Note</TableHead>
-                            <TableHead>Inserito il</TableHead>
+                            <TableHead className="w-[250px] pl-4">Nome Completo</TableHead>
+                            <TableHead>Telefono</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Creato il</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {customers.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
-                                    Nessun cliente trovato. Aggiungine uno!
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            customers.map((customer) => (
-                                <TableRow key={customer.id}>
-                                    <TableCell>
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarFallback className="text-xs bg-zinc-100 text-zinc-600">
+                        {customers.map((customer) => (
+                            <TableRow key={customer.id} className="hover:bg-zinc-50/50">
+                                <TableCell className="pl-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarFallback className="text-xs bg-zinc-100 text-zinc-600 font-medium border border-zinc-200">
                                                 {customer.firstName[0]}
                                                 {customer.lastName[0]}
                                             </AvatarFallback>
                                         </Avatar>
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        {customer.firstName} {customer.lastName}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col text-sm">
-                                            <span className="text-zinc-900">{customer.phoneE164}</span>
-                                            {customer.email && (
-                                                <span className="text-zinc-500 text-xs">{customer.email}</span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="max-w-[200px] truncate text-zinc-500 text-sm">
-                                        {customer.internalNotes || "-"}
-                                    </TableCell>
-                                    <TableCell className="text-zinc-500 text-sm">
-                                        {format(new Date(customer.createdAt), "d MMM yyyy", {
-                                            locale: it,
-                                        })}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => openEdit(customer)}>
-                                                    <Pencil className="mr-2 h-4 w-4" /> Modifica
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-red-600 focus:text-red-600"
-                                                    onClick={() => handleDelete(customer.id)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Elimina
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
+                                        <span className="font-medium text-zinc-900">
+                                            {customer.firstName} {customer.lastName}
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-zinc-600 text-sm">
+                                    {customer.phoneE164}
+                                </TableCell>
+                                <TableCell className="text-zinc-600 text-sm">
+                                    {customer.email || "-"}
+                                </TableCell>
+                                <TableCell className="text-zinc-500 text-sm">
+                                    {format(new Date(customer.createdAt), "d MMM yyyy", {
+                                        locale: it,
+                                    })}
+                                </TableCell>
+                                <TableCell>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-48">
+                                            {/* Dettaglio */}
+                                            <DropdownMenuItem asChild>
+                                                <a href={`/dashboard/customers/${customer.id}`} className="flex items-center cursor-pointer">
+                                                    <Eye className="mr-2 h-4 w-4 text-zinc-500" />
+                                                    <span className="ml-2">Visualizza Dettaglio</span>
+                                                </a>
+                                            </DropdownMenuItem>
+
+                                            {/* Modifica */}
+                                            <DropdownMenuItem onClick={() => openEdit(customer)} className="cursor-pointer">
+                                                <Pencil className="mr-2 h-4 w-4 text-zinc-500" />
+                                                Modifica
+                                            </DropdownMenuItem>
+
+                                            {/* Elimina */}
+                                            <DropdownMenuItem
+                                                className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                                                onClick={() => handleDelete(customer.id)}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Elimina
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))}
                     </TableBody>
                 </Table>
             </div>
