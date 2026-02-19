@@ -82,10 +82,21 @@ export async function createAppointment(data: any) {
                 userId: userId || null,
                 status: status || 'SCHEDULED',
             },
+            include: {
+                customer: true // Includi customer per avere i dati completi
+            }
         });
 
         revalidatePath('/dashboard/calendar');
-        return { success: true, data: newAppointment };
+
+        // Converti per evitare errore serializzazione Decimal
+        return {
+            success: true,
+            data: {
+                ...newAppointment,
+                price: newAppointment.price ? Number(newAppointment.price) : null
+            }
+        };
     } catch (error) {
         console.error('Errore creazione appuntamento:', error);
         return { success: false, error: 'Errore durante la creazione dell\'appuntamento' };
@@ -126,7 +137,15 @@ export async function updateAppointmentDates(id: string, startTime: Date, endTim
         });
 
         revalidatePath('/dashboard/calendar');
-        return { success: true, data: updatedAppointment };
+
+        // Converti per evitare errore serializzazione Decimal
+        return {
+            success: true,
+            data: {
+                ...updatedAppointment,
+                price: updatedAppointment.price ? Number(updatedAppointment.price) : null
+            }
+        };
     } catch (error) {
         console.error('Errore aggiornamento date appuntamento:', error);
         return { success: false, error: 'Errore durante l\'aggiornamento dell\'appuntamento' };

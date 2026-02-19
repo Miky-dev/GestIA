@@ -26,7 +26,20 @@ export default async function CalendarPage() {
     try {
         const result = await getAppointments(startQuery, endQuery);
         if (result.success && result.data) {
-            appointments = result.data;
+            // Converti i dati per evitare errori di serializzazione (Decimal di Prisma)
+            appointments = result.data.map((apt: any) => ({
+                id: apt.id,
+                startTime: apt.startTime,
+                endTime: apt.endTime,
+                serviceType: apt.serviceType,
+                status: apt.status,
+                customer: {
+                    firstName: apt.customer.firstName,
+                    lastName: apt.customer.lastName,
+                },
+                // Se servisse il prezzo in futuro, convertilo qui:
+                // price: apt.price ? Number(apt.price) : null,
+            }));
         }
     } catch (error) {
         console.error("Errore recupero appuntamenti:", error);
