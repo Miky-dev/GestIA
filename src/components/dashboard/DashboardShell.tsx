@@ -23,9 +23,9 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/inbox", label: "Inbox", icon: Inbox },
-    { href: "/customers", label: "Clienti", icon: Users },
-    { href: "/calendar", label: "Calendario", icon: CalendarDays },
+    { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
+    { href: "/dashboard/customers", label: "Clienti", icon: Users },
+    { href: "/dashboard/calendar", label: "Calendario", icon: CalendarDays },
 ];
 
 interface DashboardShellProps {

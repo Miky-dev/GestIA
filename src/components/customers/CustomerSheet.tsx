@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -98,9 +98,26 @@ export function CustomerSheet({
         },
     });
 
-    // Reset del form quando cambia customerToEdit o si apre lo sheet
-    // (Nota: per semplicità React Hook Form gestisce il reset con useEffect interno se cambiano defaultValues, 
-    // ma qui lo forziamo se serve. Per ora defaultValues basta alla mount o key change).
+    // Reset del form quando cambia customerToEdit
+    useEffect(() => {
+        if (customerToEdit) {
+            form.reset({
+                firstName: customerToEdit.firstName,
+                lastName: customerToEdit.lastName,
+                phone: customerToEdit.phoneE164,
+                email: customerToEdit.email || "",
+                internalNotes: customerToEdit.internalNotes || "",
+            });
+        } else {
+            form.reset({
+                firstName: "",
+                lastName: "",
+                phone: "",
+                email: "",
+                internalNotes: "",
+            });
+        }
+    }, [customerToEdit, form]);
 
     async function onSubmit(data: CustomerFormValues) {
         startTransition(async () => {
