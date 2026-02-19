@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Calendar } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,9 +30,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-import { createAppointment } from "@/actions/calendar";
+import { createAppointment, updateAppointment, deleteAppointment } from "@/actions/calendar";
 import { getCustomers } from "@/actions/customers";
 
 const appointmentSchema = z.object({
@@ -53,8 +64,13 @@ interface AppointmentSheetProps {
     isOpen: boolean;
     onClose: () => void;
     initialData?: {
+        id?: string;
         start: Date;
         end: Date;
+        customerId?: string;
+        serviceType?: string;
+        price?: number | null;
+        customerName?: string; // Optional for display
     } | null;
 }
 
@@ -67,6 +83,9 @@ export function AppointmentSheet({
     const { toast } = useToast();
     const [customers, setCustomers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
     const [loadingCustomers, setLoadingCustomers] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+    const isEditing = !!initialData?.id;
 
     const form = useForm<AppointmentFormValues>({
         resolver: zodResolver(appointmentSchema),
@@ -120,11 +139,11 @@ export function AppointmentSheet({
                 };
 
                 form.reset({
-                    customerId: "",
-                    serviceType: "",
+                    customerId: initialData.customerId || "",
+                    serviceType: initialData.serviceType || "",
                     startTime: toLocalISO(initialData.start),
                     endTime: toLocalISO(initialData.end),
-                    price: "",
+                    price: initialData.price ? initialData.price.toString() : "",
                 });
             } else {
                 form.reset({
@@ -146,12 +165,17 @@ export function AppointmentSheet({
                     price: data.price ? parseFloat(data.price) : undefined,
                 };
 
-                const result = await createAppointment(payload);
+                let result;
+                if (isEditing && initialData?.id) {
+                    result = await updateAppointment(initialData.id, payload);
+                } else {
+                    result = await createAppointment(payload);
+                }
 
                 if (result.success) {
                     toast({
-                        title: "Appuntamento creato",
-                        description: "L'appuntamento è stato salvato con successo.",
+                        title: isEditing ? "Appuntamento aggiornato" : "Appuntamento creato",
+                        description: "Le modifiche sono state salvate con successo.",
                     });
                     onClose();
                 } else {
@@ -172,13 +196,43 @@ export function AppointmentSheet({
         });
     }
 
+    const handleDelete = async () => {
+        if (!initialData?.id) return;
+
+        startTransition(async () => {
+            try {
+                const result = await deleteAppointment(initialData.id!);
+                if (result.success) {
+                    toast({
+                        title: "Appuntamento eliminato",
+                        description: "L'appuntamento è stato rimosso.",
+                    });
+                    setIsDeleteOpen(false);
+                    onClose();
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Errore",
+                        description: result.error || "Impossibile eliminare l'appuntamento.",
+                    });
+                }
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Errore",
+                    description: "Errore durante l'eliminazione.",
+                });
+            }
+        });
+    }
+
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <SheetContent className="overflow-y-auto sm:max-w-[425px]">
                 <SheetHeader>
-                    <SheetTitle>Nuovo Appuntamento</SheetTitle>
+                    <SheetTitle>{isEditing ? "Modifica Appuntamento" : "Nuovo Appuntamento"}</SheetTitle>
                     <SheetDescription>
-                        Inserisci i dettagli per il nuovo appuntamento. Clicca salva per confermare.
+                        {isEditing ? "Modifica i dettagli o elimina l'appuntamento." : "Inserisci i dettagli per il nuovo appuntamento. Clicca salva per confermare."}
                     </SheetDescription>
                 </SheetHeader>
 
@@ -282,10 +336,34 @@ export function AppointmentSheet({
                             )}
                         />
 
-                        <div className="flex justify-end pt-4">
-                            <Button type="submit" disabled={isPending}>
+                        <div className="flex justify-between pt-4">
+                            {isEditing && (
+                                <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" type="button" disabled={isPending}>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Elimina
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Questa azione non può essere annullata. L'appuntamento verrà eliminato definitivamente.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                Elimina
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
+                            <Button type="submit" disabled={isPending} className={!isEditing ? "ml-auto" : ""}>
                                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Salva
+                                {isEditing ? "Aggiorna" : "Salva"}
                             </Button>
                         </div>
                     </form>

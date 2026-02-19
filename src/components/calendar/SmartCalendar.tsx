@@ -20,11 +20,13 @@ interface Appointment {
     startTime: Date;
     endTime: Date;
     customer: {
+        id: string; // Ensure id is here
         firstName: string;
         lastName: string;
     };
     serviceType: string;
     status: string;
+    price?: number | null; // Add price
 }
 
 interface SmartCalendarProps {
@@ -37,7 +39,16 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
     const router = useRouter();
 
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
+    // Expand state type to include all needed fields
+    const [selectedSlot, setSelectedSlot] = useState<{
+        id?: string;
+        start: Date;
+        end: Date;
+        customerId?: string;
+        serviceType?: string;
+        price?: number | null;
+        customerName?: string;
+    } | null>(null);
 
     // Mappa gli eventi del DB nel formato FullCalendar
     const calendarEvents = useMemo(() => {
@@ -52,6 +63,9 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
             extendedProps: {
                 status: evt.status,
                 serviceType: evt.serviceType,
+                customerId: evt.customer.id,
+                price: evt.price,
+                customerName: `${evt.customer.firstName} ${evt.customer.lastName}`,
             },
         }));
     }, [events]);
@@ -62,9 +76,24 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
             end: selectInfo.end,
         });
         setIsSheetOpen(true);
-        // Pulisce la selezione visiva dopo aver aperto lo sheet
         const calendarApi = selectInfo.view.calendar;
         calendarApi.unselect();
+    };
+
+    const handleEventClick = (clickInfo: any) => {
+        const event = clickInfo.event;
+        const props = event.extendedProps;
+
+        setSelectedSlot({
+            id: event.id,
+            start: event.start,
+            end: event.end,
+            customerId: props.customerId,
+            serviceType: props.serviceType,
+            price: props.price,
+            customerName: props.customerName,
+        });
+        setIsSheetOpen(true);
     };
 
     const handleEventDrop = async (dropInfo: any) => {
@@ -198,7 +227,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                 select={handleDateSelect}
                 eventDrop={handleEventDrop}
                 eventResize={handleEventResize}
-                eventClick={(arg) => console.log("Event click:", arg.event.title)}
+                eventClick={handleEventClick}
             />
 
             <AppointmentSheet

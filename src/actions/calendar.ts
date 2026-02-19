@@ -185,3 +185,77 @@ export async function deleteAppointment(id: string) {
         return { success: false, error: 'Errore durante la cancellazione' };
     }
 }
+
+/**
+ * Aggiorna TUTTI i dettagli di un appuntamento.
+ * Strict Multi-tenant: Verifica che l'appuntamento appartenga alla company.
+ */
+export async function updateAppointment(id: string, data: any) {
+    const session = await auth();
+
+    if (!session?.user?.companyId) {
+        throw new Error('Non autorizzato');
+    }
+
+    const { customerId, startTime, endTime, serviceType, price, status } = data;
+
+    if (!customerId || !startTime || !endTime || !serviceType) {
+        return { success: false, error: 'Dati mancanti' };
+    }
+
+    try {
+        // 1. Verifica che l'appuntamento esista e appartenga alla company
+        const existingAppointment = await prisma.appointment.findFirst({
+            where: {
+                id,
+                companyId: session.user.companyId,
+            },
+        });
+
+        if (!existingAppointment) {
+            return { success: false, error: 'Appuntamento non trovato o accesso negato' };
+        }
+
+        // 2. Verifica che il nuovo customer appartenga alla company
+        const customer = await prisma.customer.findFirst({
+            where: {
+                id: customerId,
+                companyId: session.user.companyId
+            }
+        });
+
+        if (!customer) {
+            return { success: false, error: 'Nuovo cliente non trovato' };
+        }
+
+        // 3. Esegui l'aggiornamento
+        const updatedAppointment = await prisma.appointment.update({
+            where: { id },
+            data: {
+                customerId,
+                startTime: new Date(startTime),
+                endTime: new Date(endTime),
+                serviceType,
+                price: price ? Number(price) : null,
+                status: status || 'SCHEDULED',
+            },
+            include: {
+                customer: true
+            }
+        });
+
+        revalidatePath('/dashboard/calendar');
+
+        // Converti per evitare errore serializzazione Decimal
+        return {
+            success: true,
+            data: {
+                ...updatedAppointment,
+                price: updatedAppointment.price ? Number(updatedAppointment.price) : null
+            }
+        };
+    } catch (error) {
+        console.error('Errore aggiornamento appuntamento:', error);
+        return { success: false, error: 'Errore durante l\'aggiornamento dell\'appuntamento' };
+    }
+}

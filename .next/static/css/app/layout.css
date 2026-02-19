@@ -2112,6 +2112,10 @@ video {
     top: auto;
   }
 
+  .sm\:mt-0 {
+    margin-top: 0px;
+  }
+
   .sm\:max-w-\[425px\] {
     max-width: 425px;
   }
