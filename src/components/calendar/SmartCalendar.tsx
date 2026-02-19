@@ -1,15 +1,19 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import itLocale from "@fullcalendar/core/locales/it";
 
-// Stili personalizzati per FullCalendar (vanno creati/importati, 
-// o usiamo global.css se configurato, qui metto un blocco style jsx per isolamento rapido o classi tailwind wrapper)
-import "@/app/globals.css"; // Assicura che le variabili CSS siano disponibili
+import { AppointmentSheet } from "./AppointmentSheet";
+import { updateAppointmentDates } from "@/actions/calendar";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation"; // Per refresh dati se server action fallisce
+
+// Stili personalizzati per FullCalendar
+import "@/app/globals.css";
 
 interface Appointment {
     id: string;
@@ -29,6 +33,11 @@ interface SmartCalendarProps {
 
 export default function SmartCalendar({ events }: SmartCalendarProps) {
     const calendarRef = useRef<FullCalendar>(null);
+    const { toast } = useToast();
+    const router = useRouter();
+
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
 
     // Mappa gli eventi del DB nel formato FullCalendar
     const calendarEvents = useMemo(() => {
@@ -37,19 +46,93 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
             title: `${evt.customer.firstName} ${evt.customer.lastName} - ${evt.serviceType}`,
             start: new Date(evt.startTime),
             end: new Date(evt.endTime),
-            // Personalizzazione colori (puoi espandere con logica basata su status o serviceType)
             backgroundColor: "hsl(var(--primary))",
             borderColor: "hsl(var(--primary))",
             textColor: "hsl(var(--primary-foreground))",
             extendedProps: {
                 status: evt.status,
                 serviceType: evt.serviceType,
-            }
+            },
         }));
     }, [events]);
 
+    const handleDateSelect = (selectInfo: any) => {
+        setSelectedSlot({
+            start: selectInfo.start,
+            end: selectInfo.end,
+        });
+        setIsSheetOpen(true);
+        // Pulisce la selezione visiva dopo aver aperto lo sheet
+        const calendarApi = selectInfo.view.calendar;
+        calendarApi.unselect();
+    };
+
+    const handleEventDrop = async (dropInfo: any) => {
+        const { event } = dropInfo;
+        const newStart = event.start;
+        const newEnd = event.end;
+
+        try {
+            const result = await updateAppointmentDates(event.id, newStart, newEnd);
+
+            if (result.success) {
+                toast({
+                    title: "Appuntamento spostato",
+                    description: `Dalle ${newStart.toLocaleTimeString()} alle ${newEnd.toLocaleTimeString()}`,
+                });
+            } else {
+                dropInfo.revert();
+                toast({
+                    variant: "destructive",
+                    title: "Errore",
+                    description: result.error || "Impossibile spostare l'appuntamento.",
+                });
+            }
+        } catch (error) {
+            console.error("Errore drag & drop:", error);
+            dropInfo.revert();
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Errore di connessione.",
+            });
+        }
+    };
+
+    const handleEventResize = async (resizeInfo: any) => {
+        const { event } = resizeInfo;
+        const newStart = event.start;
+        const newEnd = event.end;
+
+        try {
+            const result = await updateAppointmentDates(event.id, newStart, newEnd);
+
+            if (result.success) {
+                toast({
+                    title: "Durata aggiornata",
+                    description: `Nuova fine: ${newEnd.toLocaleTimeString()}`,
+                });
+            } else {
+                resizeInfo.revert();
+                toast({
+                    variant: "destructive",
+                    title: "Errore",
+                    description: result.error || "Impossibile ridimensionare l'appuntamento.",
+                });
+            }
+        } catch (error) {
+            console.error("Errore resize:", error);
+            resizeInfo.revert();
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Errore di connessione.",
+            });
+        }
+    };
+
     return (
-        <div className="w-full h-full bg-background rounded-lg border shadow-sm p-4 calendar-wrapper">
+        <div className="w-full h-full bg-background rounded-lg border shadow-sm p-4 calendar-wrapper relative">
             <style jsx global>{`
                 .fc {
                     --fc-border-color: hsl(var(--border));
@@ -87,6 +170,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                     padding: 2px 4px;
                     font-size: 0.875rem;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                    cursor: pointer;
                 }
             `}</style>
 
@@ -104,13 +188,26 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                 slotMaxTime="20:00:00"
                 allDaySlot={false}
                 events={calendarEvents}
-                height="auto" // O "100%" se il container ha altezza fissa
+                height="auto"
                 stickyHeaderDates={true}
                 nowIndicator={true}
-
-                // Placeholder per interazioni future
-                dateClick={(arg) => console.log("Date click:", arg.dateStr)}
+                selectable={true}
+                selectMirror={true}
+                editable={true}
+                dayMaxEvents={true}
+                select={handleDateSelect}
+                eventDrop={handleEventDrop}
+                eventResize={handleEventResize}
                 eventClick={(arg) => console.log("Event click:", arg.event.title)}
+            />
+
+            <AppointmentSheet
+                isOpen={isSheetOpen}
+                onClose={() => {
+                    setIsSheetOpen(false);
+                    setSelectedSlot(null);
+                }}
+                initialData={selectedSlot}
             />
         </div>
     );
