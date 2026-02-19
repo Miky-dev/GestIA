@@ -13,6 +13,10 @@
     "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.0.0",
     "@radix-ui/react-avatar": "^1.1.11",
