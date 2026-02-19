@@ -1,0 +1,138 @@
+STRATEGIA AI-DRIVEN FULL STACK (SERIA)
+🔹 1. Scegliamo stack che l’IA conosce benissimo
+
+Ti propongo questo (ottimo per SaaS moderni):
+
+Frontend + Backend:
+
+Next.js (App Router)
+
+Database:
+
+PostgreSQL
+
+ORM:
+
+Prisma
+
+Auth:
+
+NextAuth oppure custom JWT
+
+UI:
+
+Tailwind + shadcn/ui
+
+Test:
+
+Jest (backend)
+
+Playwright (E2E)
+
+Perché questa combinazione?
+
+Perché:
+
+è molto documentata
+
+l’IA genera codice coerente
+
+è scalabile
+
+è perfetta per SaaS
+
+🎯 ARCHITETTURA DEFINITIVA (Founder Mode)
+
+Struttura progetto:
+
+/app
+  /dashboard
+  /inbox
+  /customers
+  /calendar
+
+/lib
+  prisma.ts
+  auth.ts
+
+/prisma
+  schema.prisma
+
+/components
+  ui/
+  inbox/
+  customers/
+
+/tests
+  api/
+  e2e/
+
+
+Non di più.
+Non microservizi.
+Non architettura enterprise.
+
+🚀 ROADMAP REALE (6 Fasi)
+Fase 1 – Setup base
+
+Setup progetto
+
+Prisma schema
+
+Auth multi-tenant
+
+Middleware company isolation
+
+Output: Login + dashboard vuota funzionante
+
+Fase 2 – CRM
+
+CRUD customers
+
+Pagina lista clienti
+
+Pagina dettaglio cliente
+
+Output: CRM base completo
+
+Fase 3 – Omnichannel Inbox (MVP)
+
+Conversations table
+
+Messages table
+
+UI lista conversazioni
+
+Thread messaggi
+
+Sidebar cliente
+
+Output: Inbox funzionante
+
+Fase 4 – Smart Calendar
+
+Appointments table
+
+UI calendario
+
+Creazione appuntamenti
+
+Drag & drop
+
+Fase 5 – Reminder automatici
+
+Cron job
+
+Template messaggi
+
+Simulazione WhatsApp
+
+Fase 6 – AI Layer
+
+Trascrizione
+
+Smart reply
+
+Data extraction
+
+AI è ultima. Non prima.
