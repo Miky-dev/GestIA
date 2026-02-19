@@ -23,6 +23,13 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 import { createAppointment } from "@/actions/calendar";
@@ -72,7 +79,64 @@ export function AppointmentSheet({
         },
     });
 
-    // ... (useEffect hooks remain the same, ensuring price reset to "")
+    // Carica i clienti all'apertura dello sheet
+    useEffect(() => {
+        if (isOpen) {
+            const fetchCustomers = async () => {
+                setLoadingCustomers(true);
+                try {
+                    const data = await getCustomers();
+                    setCustomers(data);
+                } catch (error) {
+                    console.error("Errore caricamento clienti:", error);
+                    toast({
+                        variant: "destructive",
+                        title: "Errore",
+                        description: "Impossibile caricare la lista clienti.",
+                    });
+                } finally {
+                    setLoadingCustomers(false);
+                }
+            };
+            fetchCustomers();
+        }
+    }, [isOpen, toast]);
+
+    // Imposta i valori iniziali quando cambia initialData o apre lo sheet
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                // Formatta le date per input datetime-local (YYYY-MM-DDTHH:mm)
+                // Nota: toISOString() restituisce UTC. Per mantenere l'ora locale del browser, 
+                // dobbiamo gestire il fuso orario o usare una libreria come date-fns.
+                // Qui facciamo una conversione manuale semplice per evitare dipendenze extra se non presenti.
+                const toLocalISO = (date: Date) => {
+                    const pad = (n: number) => n < 10 ? '0' + n : n;
+                    return date.getFullYear() +
+                        '-' + pad(date.getMonth() + 1) +
+                        '-' + pad(date.getDate()) +
+                        'T' + pad(date.getHours()) +
+                        ':' + pad(date.getMinutes());
+                };
+
+                form.reset({
+                    customerId: "",
+                    serviceType: "",
+                    startTime: toLocalISO(initialData.start),
+                    endTime: toLocalISO(initialData.end),
+                    price: "",
+                });
+            } else {
+                form.reset({
+                    customerId: "",
+                    serviceType: "",
+                    startTime: "",
+                    endTime: "",
+                    price: "",
+                });
+            }
+        }
+    }, [isOpen, initialData, form]);
 
     function onSubmit(data: AppointmentFormValues) {
         startTransition(async () => {
@@ -121,27 +185,36 @@ export function AppointmentSheet({
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
 
-                        {/* Cliente (Select Nativa style shadcn) */}
+                        {/* Cliente (Shadcn Select) */}
                         <FormField
                             control={form.control}
                             name="customerId"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Cliente</FormLabel>
-                                    <FormControl>
-                                        <select
-                                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                            {...field}
-                                            disabled={loadingCustomers || isPending}
-                                        >
-                                            <option value="">Seleziona un cliente...</option>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        disabled={loadingCustomers || isPending}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seleziona un cliente..." />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
                                             {customers.map((customer) => (
-                                                <option key={customer.id} value={customer.id}>
+                                                <SelectItem key={customer.id} value={customer.id}>
                                                     {customer.firstName} {customer.lastName}
-                                                </option>
+                                                </SelectItem>
                                             ))}
-                                        </select>
-                                    </FormControl>
+                                            {customers.length === 0 && !loadingCustomers && (
+                                                <div className="p-2 text-sm text-muted-foreground text-center">
+                                                    Nessun cliente trovato
+                                                </div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
