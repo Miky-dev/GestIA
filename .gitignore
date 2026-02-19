@@ -19,6 +19,8 @@ npm-debug.log*
 # Directory di build/output
 dist/
 build/
+.next/
+out/
 
 # File di sistema OS
 .DS_Store

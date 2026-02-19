@@ -2,10 +2,8 @@
  * Script di seed: crea una company e un utente admin di test
  * Esegui con: npx tsx scripts/seed.ts
  */
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../src/lib/prisma";
 import { hash } from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 async function main() {
     console.log("🌱 Avvio seed...");
