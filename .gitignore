@@ -1,30 +1,36 @@
 # Dipendenze Node.js
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# File di ambiente (contengono dati sensibili)
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# File di ambiente
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
 
-# Database locale (generato da init-project)
+# Vercel
+.vercel
+
+# Database
 database.db
 *.db
 *.sqlite
 
-# File di log
-logs/
-*.log
-npm-debug.log*
-
-# Directory di build/output
-dist/
-build/
-.next/
-out/
-
 # File di sistema OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # File dell'editor
 .vscode/
@@ -33,6 +39,10 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
+*.swp
+
+# TypeScript
+*.tsbuildinfo
 
 # File di upload locali (non versionare i media caricati)
 public/uploads/
