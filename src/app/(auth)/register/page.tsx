@@ -5,7 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, AlertCircle, Building2 } from "lucide-react";
+import {
+    Loader2,
+    AlertCircle,
+    Building2,
+    ChevronDown,
+    ChevronUp,
+} from "lucide-react";
 
 import { registerCompany } from "@/actions/register";
 import { Button } from "@/components/ui/button";
@@ -20,6 +26,13 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // ==========================================
 // SCHEMA
@@ -30,9 +43,22 @@ const registerSchema = z.object({
     adminName: z.string().min(2, "Il nome deve avere almeno 2 caratteri"),
     email: z.string().email("Inserisci un'email valida"),
     password: z.string().min(8, "La password deve avere almeno 8 caratteri"),
+    // Facoltativi
+    vatNumber: z.string().optional(),
+    phoneNumber: z.string().optional(),
+    industry: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
+
+const SECTORS = [
+    "Studio medico",
+    "Studio legale",
+    "Consulenza",
+    "Estetica",
+    "Ristorazione",
+    "Altro",
+] as const;
 
 // ==========================================
 // PAGINA
@@ -41,11 +67,13 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
     const [isPending, startTransition] = useTransition();
     const [serverError, setServerError] = useState<string | null>(null);
+    const [extraOpen, setExtraOpen] = useState(false);
 
     const {
         register,
         handleSubmit,
         setError,
+        setValue,
         formState: { errors },
     } = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
@@ -58,7 +86,6 @@ export default function RegisterPage() {
             const result = await registerCompany(data);
 
             if (!result.success) {
-                // Errori su singoli campi (es. email già in uso)
                 if (result.fieldErrors) {
                     for (const [field, message] of Object.entries(result.fieldErrors)) {
                         setError(field as keyof RegisterFormValues, { message });
@@ -108,10 +135,12 @@ export default function RegisterPage() {
                             </Alert>
                         )}
 
+                        {/* ── Sezione principale ── */}
+
                         {/* Nome Azienda */}
                         <div className="space-y-1.5">
                             <Label htmlFor="companyName" className="text-sm font-medium">
-                                Nome Azienda
+                                Nome Azienda <span className="text-red-500">*</span>
                             </Label>
                             <Input
                                 id="companyName"
@@ -125,10 +154,10 @@ export default function RegisterPage() {
                             )}
                         </div>
 
-                        {/* Nome Titolare */}
+                        {/* Nome Admin */}
                         <div className="space-y-1.5">
                             <Label htmlFor="adminName" className="text-sm font-medium">
-                                Nome Titolare
+                                Nome Titolare <span className="text-red-500">*</span>
                             </Label>
                             <Input
                                 id="adminName"
@@ -145,7 +174,7 @@ export default function RegisterPage() {
                         {/* Email */}
                         <div className="space-y-1.5">
                             <Label htmlFor="email" className="text-sm font-medium">
-                                Email
+                                Email <span className="text-red-500">*</span>
                             </Label>
                             <Input
                                 id="email"
@@ -164,7 +193,7 @@ export default function RegisterPage() {
                         {/* Password */}
                         <div className="space-y-1.5">
                             <Label htmlFor="password" className="text-sm font-medium">
-                                Password
+                                Password <span className="text-red-500">*</span>
                             </Label>
                             <Input
                                 id="password"
@@ -177,6 +206,84 @@ export default function RegisterPage() {
                             />
                             {errors.password && (
                                 <p className="text-xs text-red-500">{errors.password.message}</p>
+                            )}
+                        </div>
+
+                        {/* ── Sezione secondaria collapsible ── */}
+                        <div className="pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setExtraOpen((v) => !v)}
+                                className="w-full flex items-center justify-between py-2 text-xs font-medium text-zinc-400 hover:text-zinc-600 transition-colors group"
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    <span className="h-px flex-1 w-8 bg-zinc-200 group-hover:bg-zinc-300 transition-colors" />
+                                    Informazioni aggiuntive (facoltative)
+                                    <span className="h-px flex-1 bg-zinc-200 group-hover:bg-zinc-300 transition-colors" />
+                                </span>
+                                {extraOpen
+                                    ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" />
+                                    : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+                                }
+                            </button>
+
+                            {extraOpen && (
+                                <div className="space-y-3 mt-2">
+
+                                    {/* Partita IVA */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="vatNumber" className="text-sm font-medium text-zinc-600">
+                                            Partita IVA
+                                        </Label>
+                                        <Input
+                                            id="vatNumber"
+                                            placeholder="IT00000000000"
+                                            className="h-9"
+                                            disabled={isPending}
+                                            {...register("vatNumber")}
+                                        />
+                                    </div>
+
+                                    {/* Numero di telefono */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="phoneNumber" className="text-sm font-medium text-zinc-600">
+                                            Numero di telefono
+                                        </Label>
+                                        <Input
+                                            id="phoneNumber"
+                                            type="tel"
+                                            placeholder="+39 333 000 0000"
+                                            className="h-9"
+                                            disabled={isPending}
+                                            {...register("phoneNumber")}
+                                        />
+                                    </div>
+
+                                    {/* Settore attività */}
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="industry" className="text-sm font-medium text-zinc-600">
+                                            Settore attività
+                                        </Label>
+                                        <Select
+                                            disabled={isPending}
+                                            onValueChange={(value) =>
+                                                setValue("industry", value, { shouldDirty: true })
+                                            }
+                                        >
+                                            <SelectTrigger id="industry" className="h-9 text-sm">
+                                                <SelectValue placeholder="Seleziona settore…" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {SECTORS.map((s) => (
+                                                    <SelectItem key={s} value={s}>
+                                                        {s}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                </div>
                             )}
                         </div>
 

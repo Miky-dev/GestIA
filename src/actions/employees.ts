@@ -49,6 +49,16 @@ async function requireAdminSession() {
     return session;
 }
 
+/**
+ * Verifica che l'email dell'admin sia confermata.
+ * Lancia errore con messaggio UI-friendly se non verificata.
+ */
+async function requireVerifiedEmail(session: Awaited<ReturnType<typeof requireAdminSession>>) {
+    if (!session.user.isEmailVerified) {
+        throw new Error('EMAIL_NOT_VERIFIED: Verifica la tua email per eseguire questa operazione.');
+    }
+}
+
 // ==========================================
 // getEmployees
 // ==========================================
@@ -99,6 +109,7 @@ export async function getEmployees() {
  */
 export async function createEmployee(data: CreateEmployeeData) {
     const session = await requireAdminSession();
+    await requireVerifiedEmail(session);
 
     const { name, email, role, password } = data;
 
@@ -157,6 +168,7 @@ export async function createEmployee(data: CreateEmployeeData) {
  */
 export async function updateEmployee(id: string, data: UpdateEmployeeData) {
     const session = await requireAdminSession();
+    await requireVerifiedEmail(session);
 
     try {
         // Verifica che il dipendente esista e appartenga alla company
@@ -220,6 +232,7 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
  */
 export async function toggleEmployeeStatus(id: string) {
     const session = await requireAdminSession();
+    await requireVerifiedEmail(session);
 
     try {
         // Recupera l'utente filtrando per id + companyId

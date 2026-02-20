@@ -36,6 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         role: true,
                         companyId: true,
                         isActive: true,
+                        emailVerified: true,
                     },
                 });
 
@@ -58,6 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     name: dbUser.name,
                     companyId: dbUser.companyId,
                     role: dbUser.role,
+                    isEmailVerified: dbUser.emailVerified,
                 };
             },
         }),
@@ -70,9 +72,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 // user.id è sempre definito quando ritornato da authorize()
                 token.id = user.id!;
                 token.companyId = user.companyId;
-                // role è già del tipo corretto grazie a next-auth.d.ts
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token.role = (user as any).role;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                token.isEmailVerified = (user as any).isEmailVerified ?? false;
             }
             return token;
         },
@@ -82,6 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             session.user.id = token.id ?? token.sub ?? "";
             session.user.companyId = token.companyId ?? "";
             session.user.role = token.role;
+            session.user.isEmailVerified = token.isEmailVerified ?? false;
             return session;
         },
     },

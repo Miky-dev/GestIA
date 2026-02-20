@@ -14,8 +14,12 @@ export default async function DashboardLayout({
     }
 
     return (
-        <DashboardShell userName={session.user?.name}>
+        <DashboardShell
+            userName={session.user?.name}
+            isEmailVerified={session.user?.isEmailVerified ?? false}
+        >
             {children}
         </DashboardShell>
     );
 }
+

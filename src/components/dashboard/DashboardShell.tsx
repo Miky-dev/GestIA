@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { EmailVerificationBanner } from "@/components/dashboard/EmailVerificationBanner";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -33,9 +34,10 @@ const navItems = [
 interface DashboardShellProps {
     children: React.ReactNode;
     userName?: string | null;
+    isEmailVerified?: boolean;
 }
 
-export function DashboardShell({ children, userName }: DashboardShellProps) {
+export function DashboardShell({ children, userName, isEmailVerified = true }: DashboardShellProps) {
     const pathname = usePathname();
     const initials = userName
         ? userName
@@ -135,6 +137,9 @@ export function DashboardShell({ children, userName }: DashboardShellProps) {
                         </Avatar>
                     </div>
                 </header>
+
+                {/* Email verification banner */}
+                {!isEmailVerified && <EmailVerificationBanner />}
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto p-6">

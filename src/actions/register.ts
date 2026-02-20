@@ -2,9 +2,11 @@
 
 import { z } from 'zod';
 import { hash } from 'bcryptjs';
+import { randomBytes, createHash } from 'crypto';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { signIn } from '@/lib/auth';
+import { sendVerificationEmail } from '@/lib/email';
 
 // ==========================================
 // SCHEMA DI VALIDAZIONE
@@ -15,6 +17,10 @@ const registerSchema = z.object({
     adminName: z.string().min(2, 'Il nome deve avere almeno 2 caratteri'),
     email: z.string().email("Inserisci un'email valida"),
     password: z.string().min(8, 'La password deve avere almeno 8 caratteri'),
+    // Campi facoltativi — salvati sulla Company
+    vatNumber: z.string().optional(),
+    phoneNumber: z.string().optional(),
+    industry: z.string().optional(),
 });
 
 type RegisterInput = z.infer<typeof registerSchema>;
@@ -33,11 +39,13 @@ type RegisterResult =
 
 /**
  * Registrazione pubblica: crea una nuova Company con il primo utente ADMIN.
- * 
+ *
  * - NON accetta companyId in input
  * - NON permette la scelta del ruolo (sempre ADMIN)
  * - NON crea altri utenti
  * - Tutto avviene in una transazione atomica
+ * - Genera token di verifica email (sha256, scadenza 24h)
+ * - Invia email con link di verifica tramite Resend
  * - Dopo la creazione effettua login automatico e redirect a /dashboard
  */
 export async function registerCompany(rawData: RegisterInput): Promise<RegisterResult> {
@@ -58,13 +66,20 @@ export async function registerCompany(rawData: RegisterInput): Promise<RegisterR
         };
     }
 
-    const { companyName, adminName, email, password } = parsed.data;
+    const { companyName, adminName, email, password, vatNumber, phoneNumber, industry } = parsed.data;
+
+    // 2. Genera token di verifica email (PRIMA della transazione — nessun side-effect nel tx)
+    //    rawToken → nell'URL (link email)
+    //    hashedToken → nel DB (sicurezza: se il DB viene compromesso, i token sono inutili)
+    const rawToken = randomBytes(32).toString('hex');
+    const hashedToken = createHash('sha256').update(rawToken).digest('hex');
+    const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // +24h
 
     try {
-        // 2. Transazione atomica: verifica email + crea Company + crea User
+        // 3. Transazione atomica: verifica email + crea Company + crea User con token
         await prisma.$transaction(async (tx) => {
 
-            // 2a. Verifica che l'email non sia già in uso
+            // 3a. Verifica che l'email non sia già in uso
             const existingUser = await tx.user.findUnique({
                 where: { email },
                 select: { id: true },
@@ -74,27 +89,34 @@ export async function registerCompany(rawData: RegisterInput): Promise<RegisterR
                 throw new Error('EMAIL_TAKEN');
             }
 
-            // 2b. Crea la nuova Company 
+            // 3b. Crea la nuova Company
             const company = await tx.company.create({
                 data: {
                     name: companyName,
                     subscriptionPlan: 'STARTER',
                     subscriptionStatus: 'TRIAL',
+                    vatNumber: vatNumber || null,
+                    phoneNumber: phoneNumber || null,
+                    industry: industry || null,
                 },
             });
 
-            // 2c. Hash password con bcryptjs (salt 10)
+            // 3c. Hash password con bcryptjs (salt 10)
             const passwordHash = await hash(password, 10);
 
-            // 2d. Crea il primo utente ADMIN della company
+            // 3d. Crea il primo utente ADMIN con token di verifica email
             await tx.user.create({
                 data: {
-                    companyId: company.id,   // Generato automaticamente
+                    companyId: company.id,
                     name: adminName,
                     email,
                     passwordHash,
-                    role: 'ADMIN',          // Sempre ADMIN per il fondatore
+                    role: 'ADMIN',
                     isActive: true,
+                    // Verifica email
+                    emailVerified: false,
+                    emailVerifyToken: hashedToken,   // Hashato nel DB
+                    emailVerifyExpires: tokenExpires,
                 },
             });
         });
@@ -115,8 +137,17 @@ export async function registerCompany(rawData: RegisterInput): Promise<RegisterR
         };
     }
 
-    // 3. Login automatico con NextAuth (server-side signIn)
-    //    Chiamato FUORI dalla transazione per evitare side-effect nel tx
+    // 4. Invia email di verifica (fuori dalla tx — side-effect esterno)
+    //    Non blocca il flusso in caso di errore: l'utente può richiedere una nuova email
+    try {
+        await sendVerificationEmail(email, rawToken);
+    } catch {
+        // L'utente è stato creato correttamente — solo l'email non è partita
+        // Logghiamo ma non blocchiamo il login
+        console.error('[registerCompany] Errore invio email di verifica:', email);
+    }
+
+    // 5. Login automatico con NextAuth (server-side signIn)
     try {
         await signIn('credentials', {
             email,
@@ -124,11 +155,9 @@ export async function registerCompany(rawData: RegisterInput): Promise<RegisterR
             redirect: false,
         });
     } catch {
-        // Se il login automatico fallisce, redirige al login manuale
-        // senza esporre l'errore (l'utente è stato creato correttamente)
         redirect('/login?registered=1');
     }
 
-    // 4. Redirect al dashboard
+    // 6. Redirect al dashboard
     redirect('/dashboard');
 }
