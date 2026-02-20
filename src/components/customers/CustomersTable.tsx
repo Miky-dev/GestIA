@@ -53,7 +53,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
                 title: "Cliente eliminato",
                 description: "Il cliente è stato rimosso correttamente.",
             });
-        } catch (error) {
+        } catch {
             toast({
                 title: "Errore",
                 description: "Impossibile eliminare il cliente.",

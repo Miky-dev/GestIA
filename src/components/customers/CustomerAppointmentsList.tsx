@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { CalendarDays, Edit, MoreVertical, Trash2 } from "lucide-react";
+import { CalendarDays, Edit, MoreVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ interface CustomerAppointmentsListProps {
 
 export function CustomerAppointmentsList({
     appointments,
-    customerId,
     customerName,
 }: CustomerAppointmentsListProps) {
     const router = useRouter();

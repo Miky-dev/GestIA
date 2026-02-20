@@ -21,11 +21,10 @@ type VerifyState = "loading" | "success" | "invalid" | "expired" | "already" | "
 function VerifyEmailContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
-    const [state, setState] = useState<VerifyState>("loading");
+    const [state, setState] = useState<VerifyState>(token ? "loading" : "invalid");
 
     useEffect(() => {
         if (!token) {
-            setState("invalid");
             return;
         }
 

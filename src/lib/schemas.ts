@@ -66,3 +66,14 @@ export const customerSchema = z.object({
 
 export type CreateCustomerData = z.infer<typeof customerSchema>;
 export type UpdateCustomerData = Partial<CreateCustomerData>;
+
+// ==========================================
+// SCHEMI DI VALIDAZIONE ZOD - INBOX
+// ==========================================
+
+export const sendMessageSchema = z.object({
+    conversationId: z.string().uuid("ID conversazione non valido"),
+    content: z.string().min(1, "Il messaggio non può essere vuoto"),
+});
+
+export type SendMessageData = z.infer<typeof sendMessageSchema>;

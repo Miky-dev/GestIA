@@ -164,7 +164,7 @@ export function CustomerSheet({
                 // Chiudi lo sheet e resetta il form
                 onOpenChange(false);
                 form.reset();
-            } catch (error) {
+            } catch {
                 toast({
                     title: "Errore",
                     description: "Si è verificato un problema. Riprova più tardi.",

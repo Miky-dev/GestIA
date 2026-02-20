@@ -216,7 +216,8 @@ export function AppointmentSheet({
                         description: result.error || "Impossibile eliminare l'appuntamento.",
                     });
                 }
-            } catch (error) {
+            } catch (err) {
+                console.error(err);
                 toast({
                     variant: "destructive",
                     title: "Errore",

@@ -5,12 +5,12 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+// @ts-expect-error type declarations for FullCalendar locale are not available
 import itLocale from "@fullcalendar/core/locales/it";
 
 import { AppointmentSheet } from "./AppointmentSheet";
 import { updateAppointmentDates } from "@/actions/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation"; // Per refresh dati se server action fallisce
 
 // Stili personalizzati per FullCalendar
 import "@/app/globals.css";
@@ -36,7 +36,7 @@ interface SmartCalendarProps {
 export default function SmartCalendar({ events }: SmartCalendarProps) {
     const calendarRef = useRef<FullCalendar>(null);
     const { toast } = useToast();
-    const router = useRouter();
+    // Placeholder if router was needed, removing router
 
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     // Expand state type to include all needed fields
@@ -70,7 +70,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         }));
     }, [events]);
 
-    const handleDateSelect = (selectInfo: any) => {
+    const handleDateSelect = (selectInfo: { start: Date; end: Date; view: { calendar: { unselect: () => void } } }) => {
         setSelectedSlot({
             start: selectInfo.start,
             end: selectInfo.end,
@@ -80,7 +80,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         calendarApi.unselect();
     };
 
-    const handleEventClick = (clickInfo: any) => {
+    const handleEventClick = (clickInfo: { event: { id: string; start: Date; end: Date; extendedProps: { customerId: string; serviceType: string; price?: number | null; customerName: string; } } }) => {
         const event = clickInfo.event;
         const props = event.extendedProps;
 
@@ -96,7 +96,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         setIsSheetOpen(true);
     };
 
-    const handleEventDrop = async (dropInfo: any) => {
+    const handleEventDrop = async (dropInfo: { event: { id: string; start: Date; end: Date }; revert: () => void }) => {
         const { event } = dropInfo;
         const newStart = event.start;
         const newEnd = event.end;
@@ -128,7 +128,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         }
     };
 
-    const handleEventResize = async (resizeInfo: any) => {
+    const handleEventResize = async (resizeInfo: { event: { id: string; start: Date; end: Date }; revert: () => void }) => {
         const { event } = resizeInfo;
         const newStart = event.start;
         const newEnd = event.end;

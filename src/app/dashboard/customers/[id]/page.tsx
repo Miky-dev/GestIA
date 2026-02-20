@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Mail, Phone, CalendarDays, MessageSquare } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -181,7 +181,7 @@ async function AppointmentsTabContent({ customerId, customerName }: { customerId
     // ma Prisma Decimal potrebbe dare problemi. Calendar actions già convertono Decimal a number).
     // Prisma Date objects sono supportati nei Server Components props verso Client Components se non sono troppo complessi.
     // Tuttavia, per sicurezza e clean type, mappiamo.
-    const serializedAppointments = appointments.map((apt: any) => ({
+    const serializedAppointments = appointments.map((apt: { id: string; startTime: Date; endTime: Date; serviceType: string; price: unknown; status: string; customerId: string }) => ({
         id: apt.id,
         startTime: apt.startTime,
         endTime: apt.endTime,

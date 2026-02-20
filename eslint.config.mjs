@@ -6,7 +6,7 @@ import pluginReactHooks from "eslint-plugin-react-hooks";
 import pluginNext from "@next/eslint-plugin-next";
 
 export default tseslint.config(
-  { ignores: [".next/**", "dist/**", "node_modules/**"] },
+  { ignores: [".next/**", "dist/**", "node_modules/**", "next-env.d.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

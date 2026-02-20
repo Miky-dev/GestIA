@@ -16,8 +16,9 @@ export async function loginUser(data: {
 
     try {
         await loginRateLimiter.consume(ipIdentifier);
-    } catch (maxRetriesObj: any) {
-        const retrySecs = Math.round(maxRetriesObj.msBeforeNext / 1000) || 1;
+    } catch (maxRetriesObj: unknown) {
+        const retryObj = maxRetriesObj as { msBeforeNext?: number };
+        const retrySecs = Math.round((retryObj.msBeforeNext || 1000) / 1000) || 1;
         return {
             success: false,
             error: `Troppi tentativi falliti. Riprova tra ${retrySecs} secondi.`
@@ -37,7 +38,7 @@ export async function loginUser(data: {
             switch (error.type) {
                 case "CredentialsSignin":
                     // Distingue "account disattivato" da "credenziali errate"
-                    if ((error as any).code === "account_disabled") {
+                    if ((error as AuthError & { code?: string }).code === "account_disabled") {
                         return {
                             success: false,
                             error: "Il tuo account è stato disattivato. Contatta l'amministratore.",

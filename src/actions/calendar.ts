@@ -78,7 +78,7 @@ export async function getAppointments(startDate: Date, endDate: Date) {
  * Crea un nuovo appuntamento.
  * Strict Multi-tenant: Associa sempre il companyId della sessione.
  */
-export async function createAppointment(data: any) {
+export async function createAppointment(data: unknown) {
     const session = await auth();
 
     if (!session?.user?.companyId) {
@@ -225,7 +225,7 @@ export async function deleteAppointment(id: string) {
  * Aggiorna TUTTI i dettagli di un appuntamento.
  * Strict Multi-tenant: Verifica che l'appuntamento appartenga alla company.
  */
-export async function updateAppointment(id: string, data: any) {
+export async function updateAppointment(id: string, data: unknown) {
     const session = await auth();
 
     if (!session?.user?.companyId) {

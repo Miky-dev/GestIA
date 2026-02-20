@@ -22,18 +22,19 @@ export default async function CalendarPage() {
     const endQuery = new Date(endOfMonth);
     endQuery.setDate(endQuery.getDate() + 7);
 
-    let appointments: any[] = [];
+    let appointments: { id: string; startTime: Date; endTime: Date; serviceType: string; price?: number | null; status: string; customer: { id: string; firstName: string; lastName: string; } }[] = [];
     try {
         const result = await getAppointments(startQuery, endQuery);
         if (result.success && result.data) {
             // Converti i dati per evitare errori di serializzazione (Decimal di Prisma)
-            appointments = result.data.map((apt: any) => ({
+            appointments = result.data.map((apt: { id: string; startTime: Date; endTime: Date; serviceType: string; price?: unknown; status: string; customer: { id: string; firstName: string; lastName: string; } }) => ({
                 id: apt.id,
                 startTime: apt.startTime,
                 endTime: apt.endTime,
                 serviceType: apt.serviceType,
                 status: apt.status,
                 customer: {
+                    id: apt.customer.id,
                     firstName: apt.customer.firstName,
                     lastName: apt.customer.lastName,
                 },

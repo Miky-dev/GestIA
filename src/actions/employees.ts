@@ -129,9 +129,10 @@ export async function createEmployee(data: CreateEmployeeData) {
         revalidatePath('/dashboard/employees', 'page');
 
         return { success: true, data: newEmployee };
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Gestione email duplicata (Prisma P2002: Unique constraint violation)
-        if (error?.code === 'P2002' && error?.meta?.target?.includes('email')) {
+        const typedError = error as { code?: string; meta?: { target?: string[] } };
+        if (typedError?.code === 'P2002' && typedError?.meta?.target?.includes('email')) {
             return { success: false, error: 'Un dipendente con questa email esiste già' };
         }
 
