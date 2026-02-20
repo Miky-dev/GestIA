@@ -1,8 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { User } from "next-auth";
+
+// Errore tipizzato per account disattivato
+class DisabledAccountError extends CredentialsSignin {
+    code = "account_disabled";
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     // Nessun adapter: gestiamo tutto manualmente in authorize()
@@ -34,8 +39,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     },
                 });
 
-                // Utente non trovato o disabilitato (soft delete)
-                if (!dbUser || !dbUser.isActive) return null;
+                // Utente non trovato
+                if (!dbUser) return null;
+
+                // Account disabilitato (soft delete) → errore specifico
+                if (!dbUser.isActive) {
+                    throw new DisabledAccountError();
+                }
 
                 // Verifica della password con bcryptjs
                 const passwordsMatch = await compare(password, dbUser.passwordHash);

@@ -23,6 +23,13 @@ export async function loginUser(data: {
         if (error instanceof AuthError) {
             switch (error.type) {
                 case "CredentialsSignin":
+                    // Distingue "account disattivato" da "credenziali errate"
+                    if ((error as any).code === "account_disabled") {
+                        return {
+                            success: false,
+                            error: "Il tuo account è stato disattivato. Contatta l'amministratore.",
+                        };
+                    }
                     return { success: false, error: "Email o password non validi." };
                 case "CallbackRouteError":
                     return { success: false, error: "Errore durante il login. Riprova." };
