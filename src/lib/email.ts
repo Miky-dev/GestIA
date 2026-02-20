@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resendApiKey = process.env.RESEND_API_KEY || 're_dummy_fallback_for_build';
+const resend = new Resend(resendApiKey);
 
 const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 const FROM_EMAIL = process.env.FROM_EMAIL ?? 'GestIA <noreply@gestia.app>';
@@ -11,13 +12,13 @@ const FROM_EMAIL = process.env.FROM_EMAIL ?? 'GestIA <noreply@gestia.app>';
  * @param rawToken - Token grezzo (NON hashato) da inserire nell'URL
  */
 export async function sendVerificationEmail(to: string, rawToken: string): Promise<void> {
-    const verifyUrl = `${APP_URL}/verify-email?token=${rawToken}`;
+  const verifyUrl = `${APP_URL}/verify-email?token=${rawToken}`;
 
-    await resend.emails.send({
-        from: FROM_EMAIL,
-        to,
-        subject: 'Verifica la tua email — GestIA',
-        html: `
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Verifica la tua email — GestIA',
+    html: `
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -84,5 +85,5 @@ export async function sendVerificationEmail(to: string, rawToken: string): Promi
 </body>
 </html>
         `.trim(),
-    });
+  });
 }

@@ -4,20 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// Definizioni dei tipi per l'input (evitiamo any)
-export type CreateCustomerData = {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email?: string;
-    internalNotes?: string;
-    birthDate?: Date;
-    gender?: string;
-    fiscalCode?: string;
-    vatNumber?: string;
-};
-
-export type UpdateCustomerData = Partial<CreateCustomerData>;
+import { customerSchema } from "@/lib/schemas";
+import type { CreateCustomerData, UpdateCustomerData } from "@/lib/schemas";
 
 /**
  * Recupera tutti i clienti della company corrente.
@@ -67,8 +55,13 @@ export async function createCustomer(data: CreateCustomerData) {
         throw new Error("Unauthorized");
     }
 
+    const parsed = customerSchema.safeParse(data);
+    if (!parsed.success) {
+        throw new Error(parsed.error.issues[0].message);
+    }
+
     // Formattazione telefono (E.164 base per Italia se manca prefisso)
-    let phoneE164 = data.phone.trim().replace(/\s+/g, "");
+    let phoneE164 = parsed.data.phone.trim().replace(/\s+/g, "");
     if (!phoneE164.startsWith("+")) {
         phoneE164 = "+39" + phoneE164;
     }
@@ -76,15 +69,15 @@ export async function createCustomer(data: CreateCustomerData) {
     const newCustomer = await prisma.customer.create({
         data: {
             companyId: session.user.companyId, // Force companyId from session
-            firstName: data.firstName,
-            lastName: data.lastName,
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
             phoneE164,
-            email: data.email || null,
-            internalNotes: data.internalNotes || null,
-            birthDate: data.birthDate || null,
-            gender: data.gender || null,
-            fiscalCode: data.fiscalCode ? data.fiscalCode.toUpperCase() : null,
-            vatNumber: data.vatNumber || null,
+            email: parsed.data.email || null,
+            internalNotes: parsed.data.internalNotes || null,
+            birthDate: parsed.data.birthDate || null,
+            gender: parsed.data.gender || null,
+            fiscalCode: parsed.data.fiscalCode ? parsed.data.fiscalCode.toUpperCase() : null,
+            vatNumber: parsed.data.vatNumber || null,
         },
     });
 
@@ -113,10 +106,15 @@ export async function updateCustomer(id: string, data: UpdateCustomerData) {
         throw new Error("Customer not found or access denied");
     }
 
+    const parsed = customerSchema.partial().safeParse(data);
+    if (!parsed.success) {
+        throw new Error(parsed.error.issues[0].message);
+    }
+
     // Formattazione telefono se presente
     let phoneE164 = undefined;
-    if (data.phone) {
-        phoneE164 = data.phone.trim().replace(/\s+/g, "");
+    if (parsed.data.phone) {
+        phoneE164 = parsed.data.phone.trim().replace(/\s+/g, "");
         if (!phoneE164.startsWith("+")) {
             phoneE164 = "+39" + phoneE164;
         }
@@ -125,15 +123,15 @@ export async function updateCustomer(id: string, data: UpdateCustomerData) {
     const updatedCustomer = await prisma.customer.update({
         where: { id }, // Qui usiamo ID perché abbiamo già verificato l'ownership sopra
         data: {
-            firstName: data.firstName,
-            lastName: data.lastName,
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
             phoneE164: phoneE164,
-            email: data.email,
-            internalNotes: data.internalNotes,
-            birthDate: data.birthDate,
-            gender: data.gender,
-            fiscalCode: data.fiscalCode ? data.fiscalCode.toUpperCase() : undefined,
-            vatNumber: data.vatNumber,
+            email: parsed.data.email,
+            internalNotes: parsed.data.internalNotes,
+            birthDate: parsed.data.birthDate,
+            gender: parsed.data.gender,
+            fiscalCode: parsed.data.fiscalCode ? parsed.data.fiscalCode.toUpperCase() : undefined,
+            vatNumber: parsed.data.vatNumber,
         },
     });
 

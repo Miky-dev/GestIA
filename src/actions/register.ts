@@ -66,7 +66,8 @@ export async function registerCompany(rawData: RegisterInput): Promise<RegisterR
         };
     }
 
-    const { companyName, adminName, email, password, vatNumber, phoneNumber, industry } = parsed.data;
+    let { companyName, adminName, email, password, vatNumber, phoneNumber, industry } = parsed.data;
+    email = email.toLowerCase().trim();
 
     // 2. Genera token di verifica email (PRIMA della transazione — nessun side-effect nel tx)
     //    rawToken → nell'URL (link email)

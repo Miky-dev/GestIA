@@ -93,6 +93,7 @@ export async function resendVerificationEmail(): Promise<
                 email: true,
                 emailVerified: true,
                 emailVerifyExpires: true,
+                lastVerificationEmailSentAt: true,
             },
         });
 
@@ -104,9 +105,12 @@ export async function resendVerificationEmail(): Promise<
             return { success: false, error: 'ALREADY_VERIFIED' };
         }
 
-        // Rate-limit: non rigenerare se il token corrente è ancora valido
-        if (user.emailVerifyExpires && user.emailVerifyExpires > new Date()) {
-            return { success: false, error: 'RATE_LIMITED' };
+        // Rate-limit: 2 minuti tra un invio e l'altro
+        if (user.lastVerificationEmailSentAt) {
+            const dueMinutiFa = new Date(Date.now() - 2 * 60 * 1000);
+            if (user.lastVerificationEmailSentAt > dueMinutiFa) {
+                return { success: false, error: 'RATE_LIMITED' };
+            }
         }
 
         // Genera nuovo token
@@ -119,6 +123,7 @@ export async function resendVerificationEmail(): Promise<
             data: {
                 emailVerifyToken: hashedToken,
                 emailVerifyExpires: tokenExpires,
+                lastVerificationEmailSentAt: new Date(),
             },
         });
 

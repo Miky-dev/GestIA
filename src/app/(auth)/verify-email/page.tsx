@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
@@ -18,7 +18,7 @@ import {
 
 type VerifyState = "loading" | "success" | "invalid" | "expired" | "already" | "error";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
     const [state, setState] = useState<VerifyState>("loading");
@@ -134,5 +134,17 @@ export default function VerifyEmailPage() {
                 )}
             </Card>
         </div>
+    );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center w-full min-h-[300px]">
+                <Loader2 className="h-10 w-10 animate-spin text-zinc-400" />
+            </div>
+        }>
+            <VerifyEmailContent />
+        </Suspense>
     );
 }

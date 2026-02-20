@@ -4,24 +4,10 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import bcrypt from 'bcrypt';
+import { hash } from 'bcryptjs';
 
-// ==========================================
-// TIPI
-// ==========================================
-
-interface CreateEmployeeData {
-    name: string;
-    email: string;
-    role: Role;
-    password: string;
-}
-
-interface UpdateEmployeeData {
-    name?: string;
-    role?: Role;
-    password?: string;
-}
+import { createEmployeeSchema, updateEmployeeSchema } from '@/lib/schemas';
+import type { CreateEmployeeData, UpdateEmployeeData } from '@/lib/schemas';
 
 // ==========================================
 // HELPER: Verifica sessione ADMIN
@@ -111,14 +97,15 @@ export async function createEmployee(data: CreateEmployeeData) {
     const session = await requireAdminSession();
     await requireVerifiedEmail(session);
 
-    const { name, email, role, password } = data;
-
-    if (!name || !email || !role || !password) {
-        return { success: false, error: 'Tutti i campi (nome, email, ruolo, password) sono obbligatori' };
+    const parsed = createEmployeeSchema.safeParse(data);
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
     }
 
+    const { name, email, role, password } = parsed.data;
+
     try {
-        const passwordHash = await bcrypt.hash(password, 10);
+        const passwordHash = await hash(password, 10);
 
         const newEmployee = await prisma.user.create({
             data: {
@@ -170,6 +157,11 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
     const session = await requireAdminSession();
     await requireVerifiedEmail(session);
 
+    const parsed = updateEmployeeSchema.safeParse(data);
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
+    }
+
     try {
         // Verifica che il dipendente esista e appartenga alla company
         const existingEmployee = await prisma.user.findFirst({
@@ -190,11 +182,11 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
             passwordHash?: string;
         } = {};
 
-        if (data.name !== undefined) updatePayload.name = data.name;
-        if (data.role !== undefined) updatePayload.role = data.role;
+        if (parsed.data.name !== undefined) updatePayload.name = parsed.data.name;
+        if (parsed.data.role !== undefined) updatePayload.role = parsed.data.role;
 
-        if (data.password) {
-            updatePayload.passwordHash = await bcrypt.hash(data.password, 10);
+        if (parsed.data.password) {
+            updatePayload.passwordHash = await hash(parsed.data.password, 10);
         }
 
         const updatedEmployee = await prisma.user.update({

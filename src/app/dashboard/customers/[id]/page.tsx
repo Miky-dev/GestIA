@@ -13,12 +13,13 @@ import { it } from "date-fns/locale";
 export default async function CustomerDetailPage({
     params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
     const session = await auth();
     if (!session) redirect("/login");
 
-    const customer = await getCustomerById(params.id);
+    const resolvedParams = await params;
+    const customer = await getCustomerById(resolvedParams.id);
 
     if (!customer) {
         notFound();

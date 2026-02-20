@@ -20,10 +20,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
 
             async authorize(credentials): Promise<User | null> {
-                const email = credentials?.email as string | undefined;
+                let email = credentials?.email as string | undefined;
                 const password = credentials?.password as string | undefined;
 
                 if (!email || !password) return null;
+                email = email.toLowerCase().trim();
 
                 // Cerca l'utente nel DB tramite Prisma
                 const dbUser = await prisma.user.findUnique({

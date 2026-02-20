@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { createAppointmentSchema, updateAppointmentSchema } from '@/lib/schemas';
 
 /**
  * Recupera gli appuntamenti di un cliente specifico.
@@ -84,11 +85,13 @@ export async function createAppointment(data: any) {
         throw new Error('Non autorizzato');
     }
 
-    const { customerId, startTime, endTime, serviceType, price, userId, status } = data;
+    const parsed = createAppointmentSchema.safeParse(data);
 
-    if (!customerId || !startTime || !endTime || !serviceType) {
-        return { success: false, error: 'Dati mancanti' };
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
     }
+
+    const { customerId, startTime, endTime, serviceType, price, userId, status } = parsed.data;
 
     try {
         // Verifica esistenza cliente e appartenenza alla company
@@ -229,11 +232,13 @@ export async function updateAppointment(id: string, data: any) {
         throw new Error('Non autorizzato');
     }
 
-    const { customerId, startTime, endTime, serviceType, price, status } = data;
+    const parsed = updateAppointmentSchema.safeParse(data);
 
-    if (!customerId || !startTime || !endTime || !serviceType) {
-        return { success: false, error: 'Dati mancanti' };
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
     }
+
+    const { customerId, startTime, endTime, serviceType, price, status } = parsed.data;
 
     try {
         // 1. Verifica che l'appuntamento esista e appartenga alla company

@@ -101,6 +101,7 @@ model User {
   emailVerified       Boolean   @default(false)
   emailVerifyToken    String?
   emailVerifyExpires  DateTime?
+  lastVerificationEmailSentAt DateTime?
 
   // Relazioni
   company               Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)

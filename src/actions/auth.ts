@@ -2,6 +2,7 @@
 
 import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
+import { loginRateLimiter } from "@/lib/rate-limit";
 
 export type LoginResult =
     | { success: true }
@@ -11,6 +12,18 @@ export async function loginUser(data: {
     email: string;
     password: string;
 }): Promise<LoginResult> {
+    const ipIdentifier = "global_login_" + data.email.toLowerCase().trim();
+
+    try {
+        await loginRateLimiter.consume(ipIdentifier);
+    } catch (maxRetriesObj: any) {
+        const retrySecs = Math.round(maxRetriesObj.msBeforeNext / 1000) || 1;
+        return {
+            success: false,
+            error: `Troppi tentativi falliti. Riprova tra ${retrySecs} secondi.`
+        };
+    }
+
     try {
         await signIn("credentials", {
             email: data.email,
