@@ -8,6 +8,7 @@ import {
     Inbox,
     Users,
     CalendarDays,
+    UserCog,
     LogOut,
     ChevronDown,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const navItems = [
     { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
     { href: "/dashboard/customers", label: "Clienti", icon: Users },
     { href: "/dashboard/calendar", label: "Calendario", icon: CalendarDays },
+    { href: "/dashboard/employees", label: "Team", icon: UserCog },
 ];
 
 interface DashboardShellProps {
