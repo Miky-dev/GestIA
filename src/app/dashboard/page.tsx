@@ -54,32 +54,36 @@ export default async function DashboardPage() {
                 </Card>
 
                 {/* Card 2: Da Rispondere */}
-                <Card className="shadow-sm border-border/50 bg-background">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Da Rispondere
-                        </CardTitle>
-                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${metrics.unreadMessages > 0 ? "text-destructive" : ""}`}>
-                            {metrics.unreadMessages}
-                        </div>
-                    </CardContent>
-                </Card>
+                <Link href="/dashboard/inbox" className="block transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                    <Card className="shadow-sm border-border/50 bg-background h-full hover:border-primary/20 transition-colors cursor-pointer">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Da Rispondere
+                            </CardTitle>
+                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold ${metrics.unreadMessages > 0 ? "text-destructive" : ""}`}>
+                                {metrics.unreadMessages}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
 
                 {/* Card 3: Incasso Previsto */}
-                <Card className="shadow-sm border-border/50 bg-background">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Incasso Previsto
-                        </CardTitle>
-                        <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{formattedRevenue}</div>
-                    </CardContent>
-                </Card>
+                <Link href="/dashboard/analytics" className="block transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                    <Card className="shadow-sm border-border/50 bg-background h-full hover:border-primary/20 transition-colors cursor-pointer">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Incasso Previsto
+                            </CardTitle>
+                            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{formattedRevenue}</div>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             {/* Layout a 2 Colonne */}
