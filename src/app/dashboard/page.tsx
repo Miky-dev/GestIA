@@ -1,7 +1,11 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck } from "lucide-react";
+import { getDashboardMetrics } from "@/actions/dashboard";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, MessageSquare, CircleDollarSign, Plus, Users, Clock } from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
 
 export default async function DashboardPage() {
     const session = await auth();
@@ -10,57 +14,147 @@ export default async function DashboardPage() {
         redirect("/login");
     }
 
-    const { id, name, email, companyId, role } = session.user;
+    const { name, email } = session.user;
+    const userName = name || email;
+
+    // Fetch metrics in parallel
+    const metrics = await getDashboardMetrics();
+
+    // Format currency
+    const formattedRevenue = new Intl.NumberFormat("it-IT", {
+        style: "currency",
+        currency: "EUR",
+    }).format(metrics.expectedRevenue);
 
     return (
-        <div className="space-y-6">
-            {/* Benvenuto */}
+        <div className="flex-1 space-y-8 p-8 w-full bg-muted/40 min-h-[calc(100vh-4rem)]">
+            {/* Header */}
             <div>
-                <h1 className="text-2xl font-semibold text-zinc-900">
-                    Bentornato, {name ?? email} 👋
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                    Panoramica di Oggi
                 </h1>
-                <p className="text-sm text-zinc-500 mt-1">
-                    Ecco una panoramica del tuo account.
+                <p className="text-muted-foreground mt-2">
+                    Buongiorno, {userName} 👋
                 </p>
             </div>
 
-            {/* Badge tecnico verifica multi-tenant */}
-            <Card className="border-zinc-200 shadow-sm max-w-md">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
-                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                        Verifica Isolamento Multi-Tenant
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <dl className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                            <dt className="text-zinc-500 font-medium">User ID</dt>
-                            <dd className="font-mono text-xs bg-zinc-100 px-2 py-0.5 rounded text-zinc-700">
-                                {id}
-                            </dd>
+            {/* KPI Cards Row */}
+            <div className="grid gap-4 md:grid-cols-3">
+                {/* Card 1: Appuntamenti Oggi */}
+                <Card className="shadow-sm border-border/50 bg-background">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Appuntamenti Oggi
+                        </CardTitle>
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{metrics.appointmentsToday}</div>
+                    </CardContent>
+                </Card>
+
+                {/* Card 2: Da Rispondere */}
+                <Card className="shadow-sm border-border/50 bg-background">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Da Rispondere
+                        </CardTitle>
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-bold ${metrics.unreadMessages > 0 ? "text-destructive" : ""}`}>
+                            {metrics.unreadMessages}
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                            <dt className="text-zinc-500 font-medium">Company ID</dt>
-                            <dd className="font-mono text-xs bg-emerald-50 px-2 py-0.5 rounded text-emerald-700 border border-emerald-100">
-                                {companyId}
-                            </dd>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                            <dt className="text-zinc-500 font-medium">Role</dt>
-                            <dd>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-900 text-white">
-                                    {role}
-                                </span>
-                            </dd>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                            <dt className="text-zinc-500 font-medium">Email</dt>
-                            <dd className="text-zinc-700 text-xs">{email}</dd>
-                        </div>
-                    </dl>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+
+                {/* Card 3: Incasso Previsto */}
+                <Card className="shadow-sm border-border/50 bg-background">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Incasso Previsto
+                        </CardTitle>
+                        <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{formattedRevenue}</div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Layout a 2 Colonne */}
+            <div className="grid gap-6 md:grid-cols-10">
+
+                {/* Colonna SX: Agenda Veloce (70% -> col-span-7) */}
+                <div className="md:col-span-7">
+                    <Card className="shadow-sm border-border/50 bg-background h-full">
+                        <CardHeader>
+                            <CardTitle>Agenda Veloce</CardTitle>
+                            <CardDescription>
+                                I tuoi prossimi appuntamenti per oggi.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {metrics.upcomingAppointments.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-lg bg-muted/30">
+                                    <Clock className="w-10 h-10 text-muted-foreground/30 mb-4" />
+                                    <h3 className="text-lg font-medium text-foreground">Nessun appuntamento previsto</h3>
+                                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                                        Non hai appuntamenti in programma per il resto della giornata.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {metrics.upcomingAppointments.map((appointment) => (
+                                        <div
+                                            key={appointment.id}
+                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="font-semibold text-foreground min-w-[60px]">
+                                                    {format(new Date(appointment.startTime), "HH:mm")}
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-foreground">
+                                                        {appointment.customer.firstName} {appointment.customer.lastName}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                                {appointment.serviceType}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Colonna DX: Azioni Rapide (30% -> col-span-3) */}
+                <div className="md:col-span-3">
+                    <Card className="shadow-sm border-border/50 bg-background h-full">
+                        <CardHeader>
+                            <CardTitle>Azioni Rapide</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Link href="/dashboard/calendar" className="block">
+                                <Button className="w-full justify-start h-12" variant="outline">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Nuovo Appuntamento
+                                </Button>
+                            </Link>
+                            <Link href="/dashboard/customers" className="block">
+                                <Button className="w-full justify-start h-12" variant="outline">
+                                    <Users className="mr-2 h-4 w-4" />
+                                    Nuovo Cliente
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                </div>
+
+            </div>
         </div>
     );
 }
