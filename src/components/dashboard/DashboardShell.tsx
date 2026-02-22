@@ -11,6 +11,7 @@ import {
     UserCog,
     LogOut,
     ChevronDown,
+    Settings,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -83,6 +84,25 @@ export function DashboardShell({ children, userName, isEmailVerified = true }: D
                         );
                     })}
                 </nav>
+
+                {/* Settings Section (Staccata in basso) */}
+                <div className="p-3 border-t border-zinc-100">
+                    <p className="px-3 pb-1 text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                        Impostazioni
+                    </p>
+                    <Link
+                        href="/dashboard/settings/automations"
+                        className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                            pathname?.startsWith("/dashboard/settings/automations")
+                                ? "bg-zinc-100 text-zinc-900"
+                                : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"
+                        )}
+                    >
+                        <Settings className={cn("w-4 h-4", pathname?.startsWith("/dashboard/settings/automations") ? "text-zinc-900" : "text-zinc-400")} />
+                        Automazioni
+                    </Link>
+                </div>
 
                 {/* User footer */}
                 <div className="p-3 border-t border-zinc-100">

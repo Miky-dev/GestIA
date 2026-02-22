@@ -15,6 +15,7 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
     const [messageInput, setMessageInput] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
+    const [simulateInbound, setSimulateInbound] = useState(false); // 🔥 Dev Mode Toggle
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Caricamento iniziale messaggi
@@ -55,8 +56,8 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
             const tempMessage = {
                 id: "temp-" + Date.now(),
                 content: messageInput,
-                direction: "OUTBOUND",
-                status: "SENDING",
+                direction: simulateInbound ? "INBOUND" : "OUTBOUND",
+                status: simulateInbound ? "DELIVERED" : "SENDING",
                 createdAt: new Date().toISOString()
             };
 
@@ -72,7 +73,8 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
 
             const newMsg = await sendMessage({
                 conversationId,
-                content: inputReset
+                content: inputReset,
+                simulateInbound
             });
 
             // Sostituisci il messaggio temporaneo con quello reale
@@ -111,8 +113,10 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                         {conversation.channel}
                     </span>
                 </div>
-                <div className="text-sm text-slate-500">
-                    Stato: <span className="font-medium text-slate-700">{conversation.status}</span>
+                <div className="flex flex-col text-right">
+                    <div className="text-sm text-slate-500">
+                        Stato: <span className="font-medium text-slate-700">{conversation.status}</span>
+                    </div>
                 </div>
             </div>
 
@@ -161,14 +165,33 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t">
+            <div className="p-4 bg-white border-t flex flex-col gap-3">
+
+                {/* 🛠️ DEV MODE TOGGLE (SOLO PER SVILUPPO/TEST) */}
+                <div className="flex items-center justify-between text-xs font-semibold px-2">
+                    <span className="text-slate-400">Modalità Sviluppatore</span>
+                    <button
+                        type="button"
+                        onClick={() => setSimulateInbound(!simulateInbound)}
+                        className={`px-3 py-1 rounded-full transition-colors ${simulateInbound
+                            ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
+                            : "bg-slate-100 text-slate-600 border"
+                            }`}
+                    >
+                        {simulateInbound ? "🔄 Sto scrivendo come Cliente" : "👤 Sto rispondendo come Business"}
+                    </button>
+                </div>
+
                 <form
                     onSubmit={handleSendMessage}
                     className="flex gap-2 max-w-4xl mx-auto"
                 >
                     <input
-                        className="flex-1 px-4 py-3 rounded-xl border bg-slate-50 focus:bg-white transition-colors focus:ring-2 focus:ring-primary/20 outline-none"
-                        placeholder={`Scrivi su ${conversation.channel}...`}
+                        className={`flex-1 px-4 py-3 rounded-xl border focus:ring-2 outline-none transition-colors ${simulateInbound
+                            ? "bg-indigo-50/50 border-indigo-200 focus:bg-white focus:ring-indigo-500/20 text-indigo-900 placeholder:text-indigo-300"
+                            : "bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary/20 text-slate-900"
+                            }`}
+                        placeholder={simulateInbound ? `Scrivi un messaggio di test SIMULANDO il cliente...` : `Scrivi un messaggio ufficiale su ${conversation.channel}...`}
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
                         disabled={isSending || isLoading}
@@ -177,7 +200,8 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                     <button
                         type="submit"
                         disabled={!messageInput.trim() || isSending || isLoading}
-                        className="h-auto px-5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
+                        className={`h-auto px-5 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 text-white ${simulateInbound ? "bg-indigo-600 hover:bg-indigo-700" : "bg-primary hover:bg-primary/90"
+                            }`}
                     >
                         <Send size={18} className={messageInput.trim() ? "translate-x-0.5" : ""} />
                     </button>

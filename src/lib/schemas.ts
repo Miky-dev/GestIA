@@ -74,6 +74,7 @@ export type UpdateCustomerData = Partial<CreateCustomerData>;
 export const sendMessageSchema = z.object({
     conversationId: z.string().uuid("ID conversazione non valido"),
     content: z.string().min(1, "Il messaggio non può essere vuoto"),
+    simulateInbound: z.boolean().optional(),
 });
 
 export type SendMessageData = z.infer<typeof sendMessageSchema>;

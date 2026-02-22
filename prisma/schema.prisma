@@ -49,6 +49,7 @@ enum MessageStatus {
   SENT
   DELIVERED
   READ
+  RECEIVED
   FAILED
 }
 

@@ -88,14 +88,17 @@ export async function sendMessage(data: SendMessageData) {
     }
 
     // 2. Crea il nuovo messaggio
+    const direction = parsed.data.simulateInbound ? "INBOUND" : "OUTBOUND";
+    const status = parsed.data.simulateInbound ? "DELIVERED" : "SENT";
+
     const newMessage = await prisma.message.create({
         data: {
             conversationId: conversation.id,
             companyId: session.user.companyId,
             customerId: conversation.customerId,
-            direction: "OUTBOUND",
+            direction,
             content: parsed.data.content,
-            status: "SENT",
+            status,
         },
     });
 
@@ -104,7 +107,7 @@ export async function sendMessage(data: SendMessageData) {
         where: { id: conversation.id },
         data: {
             lastMessageAt: new Date(),
-            status: "PENDING" // Segniamo la conversazione come In Attesa se abbiamo risposto
+            status: parsed.data.simulateInbound ? "OPEN" : "PENDING" // OPEN = da leggere, PENDING = stiamo aspettando una risposta
         },
     });
 
