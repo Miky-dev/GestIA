@@ -1,7 +1,8 @@
 "use client";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Phone, Mail, FileText, Calendar } from "lucide-react";
+import { Phone, Mail, FileText, Calendar, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 interface CustomerSidebarProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,11 +66,22 @@ export function CustomerSidebar({ customer }: CustomerSidebarProps) {
                 )}
             </div>
 
-            <div className="mt-8">
-                <button className="w-full flex items-center justify-center gap-2 border shadow-sm rounded-md px-4 py-2 text-sm font-medium hover:bg-slate-50 transition-colors">
+            <div className="mt-8 space-y-3">
+                <Link
+                    href={`/dashboard/calendar?customerId=${customer.id}`}
+                    className="w-full flex items-center justify-center gap-2 border bg-white shadow-sm rounded-md px-4 py-2 text-sm font-medium hover:bg-slate-50 transition-colors"
+                >
                     <Calendar size={16} />
                     Nuovo Appuntamento
-                </button>
+                </Link>
+
+                <Link
+                    href={`/dashboard/customers/${customer.id}`}
+                    className="w-full flex items-center justify-center gap-2 text-primary hover:bg-primary/5 rounded-md px-4 py-2 text-sm font-medium transition-colors"
+                >
+                    <ExternalLink size={16} />
+                    Profilo Cliente Completo
+                </Link>
             </div>
         </div>
     );
