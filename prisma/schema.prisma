@@ -77,11 +77,12 @@ model Company {
   industry           String?
 
   // Relazioni (Il Multi-tenant parte da qui)
-  users         User[]
-  customers     Customer[]
-  conversations Conversation[]
-  messages      Message[]
-  appointments  Appointment[]
+  users             User[]
+  customers         Customer[]
+  conversations     Conversation[]
+  messages          Message[]
+  appointments      Appointment[]
+  messageTemplates  MessageTemplate[]
 
   @@map("companies")
 }
@@ -197,6 +198,9 @@ model Appointment {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
+  // Flag promemoria
+  reminderSent Boolean          @default(false)
+
   // Relazioni
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -204,4 +208,21 @@ model Appointment {
 
   @@index([companyId, startTime])
   @@map("appointments")
+}
+
+model MessageTemplate {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String   // Es: "Promemoria Appuntamento"
+  content   String   @db.Text // Es: "Ciao {{nome}}, ti ricordiamo..."
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relazioni
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@unique([companyId, name])
+  @@map("message_templates")
 }

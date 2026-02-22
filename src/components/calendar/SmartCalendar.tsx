@@ -5,12 +5,14 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-// @ts-expect-error type declarations for FullCalendar locale are not available
 import itLocale from "@fullcalendar/core/locales/it";
 
 import { AppointmentSheet } from "./AppointmentSheet";
 import { updateAppointmentDates } from "@/actions/calendar";
 import { useToast } from "@/hooks/use-toast";
+
+import { EventClickArg, EventDropArg } from "@fullcalendar/core";
+import { EventResizeDoneArg } from "@fullcalendar/interaction";
 
 // Stili personalizzati per FullCalendar
 import "@/app/globals.css";
@@ -80,9 +82,11 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         calendarApi.unselect();
     };
 
-    const handleEventClick = (clickInfo: { event: { id: string; start: Date; end: Date; extendedProps: { customerId: string; serviceType: string; price?: number | null; customerName: string; } } }) => {
+    const handleEventClick = (clickInfo: EventClickArg) => {
         const event = clickInfo.event;
         const props = event.extendedProps;
+
+        if (!event.start || !event.end) return;
 
         setSelectedSlot({
             id: event.id,
@@ -96,10 +100,12 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         setIsSheetOpen(true);
     };
 
-    const handleEventDrop = async (dropInfo: { event: { id: string; start: Date; end: Date }; revert: () => void }) => {
+    const handleEventDrop = async (dropInfo: EventDropArg) => {
         const { event } = dropInfo;
         const newStart = event.start;
         const newEnd = event.end;
+
+        if (!newStart || !newEnd) return;
 
         try {
             const result = await updateAppointmentDates(event.id, newStart, newEnd);
@@ -128,10 +134,12 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         }
     };
 
-    const handleEventResize = async (resizeInfo: { event: { id: string; start: Date; end: Date }; revert: () => void }) => {
+    const handleEventResize = async (resizeInfo: EventResizeDoneArg) => {
         const { event } = resizeInfo;
         const newStart = event.start;
         const newEnd = event.end;
+
+        if (!newStart || !newEnd) return;
 
         try {
             const result = await updateAppointmentDates(event.id, newStart, newEnd);
