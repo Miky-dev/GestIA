@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -24,6 +25,31 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { EmailVerificationBanner } from "@/components/dashboard/EmailVerificationBanner";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+
+function HeaderDateTime() {
+    const [mounted, setMounted] = useState(false);
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        setMounted(true);
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    if (!mounted) {
+        return <div className="text-sm w-48 animate-pulse h-5 bg-zinc-100 rounded-md" />;
+    }
+
+    return (
+        <div className="text-sm font-medium text-zinc-500 capitalize flex items-center gap-2">
+            <span>{format(now, "EEEE d MMMM yyyy", { locale: it })}</span>
+            <span>•</span>
+            <span className="font-semibold">{format(now, "HH:mm")}</span>
+        </div>
+    );
+}
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -151,7 +177,8 @@ export function DashboardShell({ children, userName, isEmailVerified = true }: D
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-5">
+                        <HeaderDateTime />
                         <Avatar className="w-8 h-8">
                             <AvatarFallback className="text-xs bg-zinc-900 text-white font-medium">
                                 {initials}
