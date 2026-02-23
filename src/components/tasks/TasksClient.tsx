@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { format, isToday, isBefore, startOfToday, addDays, isPast } from "date-fns";
 import { it } from "date-fns/locale";
 import {
@@ -50,6 +50,11 @@ export function TasksClient({ initialTasks }: { initialTasks: TaskWithRelations[
     const [newTaskTitle, setNewTaskTitle] = useState("");
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+
+    // Sincronizza lo stato locale quando i dati dal server cambiano (Server Action -> revalidatePath)
+    useEffect(() => {
+        setTasks(initialTasks);
+    }, [initialTasks]);
 
     // Raggruppamento tasks
     const today = startOfToday();

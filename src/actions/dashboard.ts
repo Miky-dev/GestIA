@@ -3,13 +3,15 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { startOfToday, endOfToday } from "date-fns";
-import { Customer, Appointment } from "@prisma/client";
+import { Customer, Appointment, Task } from "@prisma/client";
 
 export type DashboardMetrics = {
     appointmentsToday: number;
     expectedRevenue: number;
     unreadMessages: number;
     upcomingAppointments: (Appointment & { customer: Customer })[];
+    overdueTasksCount: number;
+    urgentTasks: (Task & { customer: Customer | null })[];
 };
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -27,7 +29,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             appointmentsTodayCount,
             revenueAggregation,
             unreadMessagesCount,
-            upcomingAppointments
+            upcomingAppointments,
+            overdueTasksCount,
+            urgentTasks
         ] = await Promise.all([
             // 1. Conto degli appuntamenti di oggi
             prisma.appointment.count({
@@ -84,6 +88,42 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
                 include: {
                     customer: true
                 }
+            }),
+
+            // 5. Task Scaduti
+            prisma.task.count({
+                where: {
+                    companyId,
+                    isArchived: false,
+                    status: {
+                        not: "DONE"
+                    },
+                    dueDate: {
+                        lt: todayStart
+                    }
+                }
+            }),
+
+            // 6. Task di oggi o urgenti
+            prisma.task.findMany({
+                where: {
+                    companyId,
+                    isArchived: false,
+                    status: {
+                        not: "DONE"
+                    },
+                    dueDate: {
+                        lte: todayEnd
+                    }
+                },
+                orderBy: [
+                    { priority: "desc" },
+                    { dueDate: "asc" }
+                ],
+                take: 5,
+                include: {
+                    customer: true
+                }
             })
         ]);
 
@@ -91,7 +131,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             appointmentsToday: appointmentsTodayCount,
             expectedRevenue: revenueAggregation._sum.price ? Number(revenueAggregation._sum.price) : 0,
             unreadMessages: unreadMessagesCount,
-            upcomingAppointments
+            upcomingAppointments,
+            overdueTasksCount,
+            urgentTasks
         };
 
     } catch (error) {
@@ -100,7 +142,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             appointmentsToday: 0,
             expectedRevenue: 0,
             unreadMessages: 0,
-            upcomingAppointments: []
+            upcomingAppointments: [],
+            overdueTasksCount: 0,
+            urgentTasks: []
         };
     }
 }

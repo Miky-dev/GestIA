@@ -60,7 +60,9 @@ L'applicazione sarà ora disponibile all'indirizzo `http://localhost:3000`.
 
 Nello sviluppo quotidiano puoi usare questi comandi definiti nel `package.json`:
 
-- `npm run dev`: Avvia l'ambiente di sviluppo in locale.
+Nello sviluppo quotidiano puoi usare questi comandi definiti nel `package.json`:
+
+- `npm run dev`: Avvia l'ambiente di sviluppo in locale. **Nota:** Il progetto usa `next dev --turbo` per accelerare drasticamente i tempi di caricamento iniziale della UI grazie a Turbopack. Le performance dell'app in produzione (compilata) saranno comunque istantanee.
 - `npm run build`: Compila l'applicazione per la produzione.
 - `npm run start`: Esegue la build creata in ambiente di produzione.
 - `npm run lint`: Esegue l'analisi statica del codice (ESLint).
