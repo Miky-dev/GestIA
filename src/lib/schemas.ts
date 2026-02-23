@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Role } from '@prisma/client';
+import { Role, TaskPriority, TaskStatus } from '@prisma/client';
 
 // ==========================================
 // SCHEMI DI VALIDAZIONE ZOD - CALENDARIO
@@ -78,3 +78,24 @@ export const sendMessageSchema = z.object({
 });
 
 export type SendMessageData = z.infer<typeof sendMessageSchema>;
+
+// ==========================================
+// SCHEMI DI VALIDAZIONE ZOD - TASKS
+// ==========================================
+
+export const createTaskSchema = z.object({
+    title: z.string().min(1, "Il titolo è obbligatorio"),
+    description: z.string().optional().nullable(),
+    dueDate: z.coerce.date().optional().nullable(),
+    priority: z.nativeEnum(TaskPriority).optional(),
+    status: z.nativeEnum(TaskStatus).optional(),
+    assigneeId: z.string().uuid("ID operatore non valido").optional().nullable(),
+    customerId: z.string().uuid("ID cliente non valido").optional().nullable(),
+    appointmentId: z.string().uuid("ID appuntamento non valido").optional().nullable(),
+    conversationId: z.string().uuid("ID conversazione non valido").optional().nullable(),
+});
+
+export const updateTaskSchema = createTaskSchema.partial();
+
+export type CreateTaskData = z.infer<typeof createTaskSchema>;
+export type UpdateTaskData = z.infer<typeof updateTaskSchema>;

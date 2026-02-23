@@ -6,10 +6,10 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import itLocale from "@fullcalendar/core/locales/it";
-
 import { AppointmentSheet } from "./AppointmentSheet";
 import { updateAppointmentDates } from "@/actions/calendar";
 import { useToast } from "@/hooks/use-toast";
+import { AppointmentStatus } from "@prisma/client";
 
 import { EventClickArg, EventDropArg } from "@fullcalendar/core";
 import { EventResizeDoneArg } from "@fullcalendar/interaction";
@@ -27,7 +27,7 @@ interface Appointment {
         lastName: string;
     };
     serviceType: string;
-    status: string;
+    status: AppointmentStatus;
     price?: number | null; // Add price
 }
 
@@ -49,6 +49,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         customerId?: string;
         serviceType?: string;
         price?: number | null;
+        status?: AppointmentStatus;
         customerName?: string;
     } | null>(null);
 
@@ -95,6 +96,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
             customerId: props.customerId,
             serviceType: props.serviceType,
             price: props.price,
+            status: props.status,
             customerName: props.customerName,
         });
         setIsSheetOpen(true);

@@ -45,6 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { createAppointment, updateAppointment, deleteAppointment } from "@/actions/calendar";
 import { getCustomers } from "@/actions/customers";
+import { AppointmentStatus } from "@prisma/client";
 
 const appointmentSchema = z.object({
     customerId: z.string().min(1, "Seleziona un cliente"),
@@ -56,6 +57,7 @@ const appointmentSchema = z.object({
         message: "Data fine non valida",
     }),
     price: z.string().optional(),
+    status: z.nativeEnum(AppointmentStatus).optional(),
 });
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>;
@@ -70,6 +72,7 @@ interface AppointmentSheetProps {
         customerId?: string;
         serviceType?: string;
         price?: number | null;
+        status?: AppointmentStatus;
         customerName?: string; // Optional for display
     } | null;
 }
@@ -95,6 +98,7 @@ export function AppointmentSheet({
             startTime: "",
             endTime: "",
             price: "",
+            status: AppointmentStatus.SCHEDULED,
         },
     });
 
@@ -144,6 +148,7 @@ export function AppointmentSheet({
                     startTime: toLocalISO(initialData.start),
                     endTime: toLocalISO(initialData.end),
                     price: initialData.price ? initialData.price.toString() : "",
+                    status: initialData.status || AppointmentStatus.SCHEDULED,
                 });
             } else {
                 form.reset({
@@ -152,6 +157,7 @@ export function AppointmentSheet({
                     startTime: "",
                     endTime: "",
                     price: "",
+                    status: AppointmentStatus.SCHEDULED,
                 });
             }
         }
@@ -322,20 +328,52 @@ export function AppointmentSheet({
                             />
                         </div>
 
-                        {/* Prezzo */}
-                        <FormField
-                            control={form.control}
-                            name="price"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Prezzo (€)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" placeholder="0.00" {...field} disabled={isPending} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                        {/* Prezzo e Stato (Stato mostrato solo in modifica) */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="price"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Prezzo (€)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" placeholder="0.00" {...field} disabled={isPending} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {isEditing && (
+                                <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Stato</FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                disabled={isPending}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Seleziona stato" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value={AppointmentStatus.SCHEDULED}>Programmato</SelectItem>
+                                                    <SelectItem value={AppointmentStatus.COMPLETED}>Completato</SelectItem>
+                                                    <SelectItem value={AppointmentStatus.NO_SHOW}>Non Presentato</SelectItem>
+                                                    <SelectItem value={AppointmentStatus.CANCELLED}>Annullato</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             )}
-                        />
+                        </div>
 
                         <div className="flex justify-between pt-4">
                             {isEditing && (

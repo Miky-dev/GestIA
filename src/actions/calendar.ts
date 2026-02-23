@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { createAppointmentSchema, updateAppointmentSchema } from '@/lib/schemas';
+import { handleBusinessEvent } from '@/lib/services/task-automator';
 
 /**
  * Recupera gli appuntamenti di un cliente specifico.
@@ -281,7 +282,26 @@ export async function updateAppointment(id: string, data: unknown) {
             }
         });
 
+        // 4. 🔥 INIEZIONE DELL'AUTOMATORE INVISIBILE 🔥
+        try {
+            if (updatedAppointment.status === "NO_SHOW") {
+                await handleBusinessEvent(session.user.companyId, "APPOINTMENT_NO_SHOW", {
+                    customerId: updatedAppointment.customerId,
+                    appointmentId: updatedAppointment.id
+                });
+            }
+            else if (updatedAppointment.status === "COMPLETED") {
+                await handleBusinessEvent(session.user.companyId, "APPOINTMENT_COMPLETED", {
+                    customerId: updatedAppointment.customerId,
+                    appointmentId: updatedAppointment.id
+                });
+            }
+        } catch (err) {
+            console.error("Errore silente nella creazione del task automatico:", err);
+        }
+
         revalidatePath('/dashboard/calendar');
+        revalidatePath('/dashboard/tasks');
 
         // Converti per evitare errore serializzazione Decimal
         return {

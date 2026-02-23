@@ -12,6 +12,7 @@ import {
     LogOut,
     ChevronDown,
     Settings,
+    CheckSquare,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -29,6 +30,7 @@ const navItems = [
     { href: "/dashboard/inbox", label: "Inbox", icon: Inbox },
     { href: "/dashboard/customers", label: "Clienti", icon: Users },
     { href: "/dashboard/calendar", label: "Calendario", icon: CalendarDays },
+    { href: "/dashboard/tasks", label: "Attività", icon: CheckSquare },
     { href: "/dashboard/employees", label: "Team", icon: UserCog },
 ];
 

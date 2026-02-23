@@ -60,6 +60,19 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
 // ==========================================
 // MODELS
 // ==========================================
@@ -73,17 +86,18 @@ model Company {
   updatedAt          DateTime           @updatedAt
 
   // Dati aziendali opzionali
-  vatNumber          String?
-  phoneNumber        String?
-  industry           String?
+  vatNumber   String?
+  phoneNumber String?
+  industry    String?
 
   // Relazioni (Il Multi-tenant parte da qui)
-  users             User[]
-  customers         Customer[]
-  conversations     Conversation[]
-  messages          Message[]
-  appointments      Appointment[]
-  messageTemplates  MessageTemplate[]
+  users            User[]
+  customers        Customer[]
+  conversations    Conversation[]
+  messages         Message[]
+  appointments     Appointment[]
+  messageTemplates MessageTemplate[]
+  tasks            Task[]
 
   @@map("companies")
 }
@@ -100,15 +114,16 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Verifica email (solo per ADMIN inizialmente)
-  emailVerified       Boolean   @default(false)
-  emailVerifyToken    String?
-  emailVerifyExpires  DateTime?
+  emailVerified               Boolean   @default(false)
+  emailVerifyToken            String?
+  emailVerifyExpires          DateTime?
   lastVerificationEmailSentAt DateTime?
 
   // Relazioni
   company               Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignedConversations Conversation[]
-  appointments          Appointment[]  // Appuntamenti assegnati a questo operatore
+  appointments          Appointment[] // Appuntamenti assegnati a questo operatore
+  tasks                 Task[] // Task assegnati all'operatore
 
   @@index([companyId])
   @@map("users")
@@ -124,18 +139,19 @@ model Customer {
   internalNotes String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   // Dati Anagrafici
-  birthDate     DateTime?
-  gender        String?   // 'M', 'F', 'N'
-  fiscalCode    String?
-  vatNumber     String?
+  birthDate  DateTime?
+  gender     String? // 'M', 'F', 'N'
+  fiscalCode String?
+  vatNumber  String?
 
   // Relazioni
   company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   messages      Message[]
   appointments  Appointment[]
+  tasks         Task[]
 
   // Indice vitale: un numero di telefono deve essere unico PER SINGOLA AZIENDA
   @@unique([companyId, phoneE164])
@@ -158,6 +174,7 @@ model Conversation {
   customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   assignee User?     @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
   messages Message[]
+  tasks    Task[]
 
   // Indice vitale: ordinare le chat nella UI della inbox istantaneamente
   @@index([companyId, lastMessageAt(sort: Desc)])
@@ -189,7 +206,7 @@ model Appointment {
   id          String            @id @default(uuid())
   companyId   String
   customerId  String
-  userId      String?           // L'operatore che esegue il servizio (opzionale)
+  userId      String? // L'operatore che esegue il servizio (opzionale)
   startTime   DateTime
   endTime     DateTime
   status      AppointmentStatus @default(SCHEDULED)
@@ -200,12 +217,13 @@ model Appointment {
   updatedAt   DateTime          @updatedAt
 
   // Flag promemoria
-  reminderSent Boolean          @default(false)
+  reminderSent Boolean @default(false)
 
   // Relazioni
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tasks    Task[]
 
   @@index([companyId, startTime])
   @@map("appointments")
@@ -214,16 +232,56 @@ model Appointment {
 model MessageTemplate {
   id        String   @id @default(uuid())
   companyId String
-  name      String   // Es: "Promemoria Appuntamento"
+  name      String // Es: "Promemoria Appuntamento"
   content   String   @db.Text // Es: "Ciao {{nome}}, ti ricordiamo..."
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relazioni
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  @@index([companyId])
   @@unique([companyId, name])
+  @@index([companyId])
   @@map("message_templates")
+}
+
+// ==========================================
+// TASK MODEL (CRM)
+// ==========================================
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String?      @db.Text
+  dueDate     DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+
+  // Multi-tenant
+  companyId String
+
+  // Foreign Keys (Opzionali)
+  assigneeId     String?
+  customerId     String?
+  appointmentId  String?
+  conversationId String?
+
+  // Audit e Flags
+  isArchived  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  // Relazioni
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignee     User?         @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointment  Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  // Indici Strategici (Performance)
+  @@index([companyId, assigneeId, dueDate])
+  @@index([companyId, status, isArchived])
+  @@map("tasks")
 }
