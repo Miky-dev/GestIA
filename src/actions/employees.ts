@@ -71,6 +71,14 @@ export async function getEmployees() {
                 isActive: true,
                 specialty: true,
                 createdAt: true,
+                workSchedules: {
+                    select: {
+                        dayOfWeek: true,
+                        startTime: true,
+                        endTime: true,
+                    },
+                    orderBy: { dayOfWeek: 'asc' },
+                },
             },
             orderBy: {
                 createdAt: 'desc',
@@ -107,30 +115,52 @@ export async function createEmployee(data: CreateEmployeeData) {
         return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const { name, email, role, password } = parsed.data;
+    const { name, email, role, password, workSchedules } = parsed.data;
 
     try {
         const passwordHash = await hash(password, 10);
 
-        const newEmployee = await prisma.user.create({
-            data: {
-                companyId: session.user.companyId,
-                name,
-                email,
-                role,
-                passwordHash,
-                isActive: true,
-                specialty: parsed.data.specialty || null,
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                isActive: true,
-                specialty: true,
-                createdAt: true,
-            },
+        const newEmployee = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    companyId: session.user.companyId,
+                    name,
+                    email,
+                    role,
+                    passwordHash,
+                    isActive: true,
+                    specialty: parsed.data.specialty || null,
+                },
+            });
+
+            // Crea gli orari di lavoro
+            if (workSchedules && workSchedules.length > 0) {
+                await tx.workSchedule.createMany({
+                    data: workSchedules.map((ws) => ({
+                        userId: user.id,
+                        dayOfWeek: ws.dayOfWeek,
+                        startTime: ws.startTime,
+                        endTime: ws.endTime,
+                    })),
+                });
+            }
+
+            return tx.user.findUniqueOrThrow({
+                where: { id: user.id },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    isActive: true,
+                    specialty: true,
+                    createdAt: true,
+                    workSchedules: {
+                        select: { dayOfWeek: true, startTime: true, endTime: true },
+                        orderBy: { dayOfWeek: 'asc' },
+                    },
+                },
+            });
         });
 
         revalidatePath('/dashboard/employees', 'page');
@@ -202,18 +232,43 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
             updatePayload.passwordHash = await hash(parsed.data.password, 10);
         }
 
-        const updatedEmployee = await prisma.user.update({
-            where: { id },
-            data: updatePayload,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                isActive: true,
-                specialty: true,
-                createdAt: true,
-            },
+        const updatedEmployee = await prisma.$transaction(async (tx) => {
+            await tx.user.update({
+                where: { id },
+                data: updatePayload,
+            });
+
+            // Aggiorna gli orari di lavoro (delete + recreate)
+            if (parsed.data.workSchedules !== undefined) {
+                await tx.workSchedule.deleteMany({ where: { userId: id } });
+                if (parsed.data.workSchedules && parsed.data.workSchedules.length > 0) {
+                    await tx.workSchedule.createMany({
+                        data: parsed.data.workSchedules.map((ws) => ({
+                            userId: id,
+                            dayOfWeek: ws.dayOfWeek,
+                            startTime: ws.startTime,
+                            endTime: ws.endTime,
+                        })),
+                    });
+                }
+            }
+
+            return tx.user.findUniqueOrThrow({
+                where: { id },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    isActive: true,
+                    specialty: true,
+                    createdAt: true,
+                    workSchedules: {
+                        select: { dayOfWeek: true, startTime: true, endTime: true },
+                        orderBy: { dayOfWeek: 'asc' },
+                    },
+                },
+            });
         });
 
         revalidatePath('/dashboard/employees', 'page');
@@ -281,5 +336,51 @@ export async function toggleEmployeeStatus(id: string) {
             return { success: false, error: error.message };
         }
         return { success: false, error: 'Errore durante l\'aggiornamento dello stato del dipendente' };
+    }
+}
+
+// ==========================================
+// getActiveEmployees (Per Calendario / Appuntamenti)
+// ==========================================
+
+/**
+ * Recupera i dipendenti attivi dell'azienda corrente con i loro orari di lavoro.
+ * NON richiede ruolo ADMIN — qualsiasi utente autenticato può usarla.
+ * Usata dal calendario e dall'AppointmentSheet.
+ */
+export async function getActiveEmployees() {
+    const session = await auth();
+
+    if (!session?.user?.companyId) {
+        throw new Error('Non autorizzato: Sessione o Company ID mancante');
+    }
+
+    try {
+        const employees = await prisma.user.findMany({
+            where: {
+                companyId: session.user.companyId,
+                isActive: true,
+            },
+            select: {
+                id: true,
+                name: true,
+                role: true,
+                specialty: true,
+                workSchedules: {
+                    select: {
+                        dayOfWeek: true,
+                        startTime: true,
+                        endTime: true,
+                    },
+                    orderBy: { dayOfWeek: 'asc' },
+                },
+            },
+            orderBy: { name: 'asc' },
+        });
+
+        return { success: true, data: employees };
+    } catch (error) {
+        console.error('Errore nel recupero dipendenti attivi:', error);
+        return { success: false, error: 'Impossibile recuperare i dipendenti' };
     }
 }

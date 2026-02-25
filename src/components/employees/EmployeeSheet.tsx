@@ -1,10 +1,10 @@
 "use client";
 
-import { useTransition, useEffect } from "react";
+import { useTransition, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, UserPlus, Shield, UserCog, Stethoscope } from "lucide-react";
+import { Loader2, UserPlus, Shield, UserCog, Stethoscope, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 import { createEmployee, updateEmployee } from "@/actions/employees";
+import type { WorkScheduleItem } from "@/lib/schemas";
 
 // ==========================================
 // TIPI
@@ -40,6 +43,7 @@ export interface Employee {
     isActive: boolean;
     specialty: string | null;
     createdAt: Date;
+    workSchedules?: { dayOfWeek: number; startTime: string; endTime: string }[];
 }
 
 interface EmployeeSheetProps {
@@ -75,6 +79,34 @@ const createSchema = baseSchema.extend({
 type EmployeeFormValues = z.infer<typeof baseSchema>;
 
 // ==========================================
+// COSTANTI GIORNI
+// ==========================================
+
+const DAYS_OF_WEEK = [
+    { value: 1, label: "Lunedì", short: "Lun" },
+    { value: 2, label: "Martedì", short: "Mar" },
+    { value: 3, label: "Mercoledì", short: "Mer" },
+    { value: 4, label: "Giovedì", short: "Gio" },
+    { value: 5, label: "Venerdì", short: "Ven" },
+    { value: 6, label: "Sabato", short: "Sab" },
+    { value: 0, label: "Domenica", short: "Dom" },
+];
+
+const DEFAULT_SCHEDULE: ScheduleDay[] = DAYS_OF_WEEK.map((day) => ({
+    dayOfWeek: day.value,
+    enabled: day.value >= 1 && day.value <= 5, // Lun-Ven attivi di default
+    startTime: "09:00",
+    endTime: "18:00",
+}));
+
+interface ScheduleDay {
+    dayOfWeek: number;
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+}
+
+// ==========================================
 // LABEL RUOLO
 // ==========================================
 
@@ -103,6 +135,7 @@ const roleConfig: Record<"ADMIN" | "SECRETARY" | "EMPLOYEE", { label: string; de
 export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheetProps) {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+    const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_SCHEDULE);
 
     const isEditMode = !!employeeToEdit;
 
@@ -127,6 +160,26 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                 password: "",
                 specialty: employeeToEdit.specialty || "",
             });
+
+            // Ripristina orari dal DB
+            if (employeeToEdit.workSchedules && employeeToEdit.workSchedules.length > 0) {
+                const dbScheduleMap = new Map(
+                    employeeToEdit.workSchedules.map((ws) => [ws.dayOfWeek, ws])
+                );
+                setSchedule(
+                    DAYS_OF_WEEK.map((day) => {
+                        const ws = dbScheduleMap.get(day.value);
+                        return {
+                            dayOfWeek: day.value,
+                            enabled: !!ws,
+                            startTime: ws?.startTime || "09:00",
+                            endTime: ws?.endTime || "18:00",
+                        };
+                    })
+                );
+            } else {
+                setSchedule(DEFAULT_SCHEDULE);
+            }
         } else {
             form.reset({
                 name: "",
@@ -135,6 +188,7 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                 password: "",
                 specialty: "",
             });
+            setSchedule(DEFAULT_SCHEDULE);
         }
     }, [employeeToEdit, form]);
 
@@ -142,19 +196,39 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
     function handleOpenChange(open: boolean) {
         if (!open) {
             form.reset();
+            setSchedule(DEFAULT_SCHEDULE);
             onClose();
         }
+    }
+
+    function updateScheduleDay(dayOfWeek: number, updates: Partial<ScheduleDay>) {
+        setSchedule((prev) =>
+            prev.map((d) => (d.dayOfWeek === dayOfWeek ? { ...d, ...updates } : d))
+        );
+    }
+
+    function buildWorkSchedules(): WorkScheduleItem[] {
+        return schedule
+            .filter((d) => d.enabled)
+            .map((d) => ({
+                dayOfWeek: d.dayOfWeek,
+                startTime: d.startTime,
+                endTime: d.endTime,
+            }));
     }
 
     async function onSubmit(data: EmployeeFormValues) {
         startTransition(async () => {
             try {
+                const workSchedules = buildWorkSchedules();
+
                 if (isEditMode && employeeToEdit) {
                     const result = await updateEmployee(employeeToEdit.id, {
                         name: data.name,
                         role: data.role as "ADMIN" | "SECRETARY" | "EMPLOYEE",
                         password: data.password || undefined,
                         specialty: data.role === "EMPLOYEE" ? (data.specialty || undefined) : null,
+                        workSchedules,
                     });
 
                     if (!result.success) {
@@ -177,6 +251,7 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                         role: data.role as "ADMIN" | "SECRETARY" | "EMPLOYEE",
                         password: data.password!,
                         specialty: data.role === "EMPLOYEE" ? (data.specialty || undefined) : undefined,
+                        workSchedules,
                     });
 
                     if (!result.success) {
@@ -213,6 +288,8 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
             }
         });
     }
+
+    const showSchedule = form.watch("role") !== "ADMIN";
 
     return (
         <Sheet open={isOpen} onOpenChange={handleOpenChange}>
@@ -282,7 +359,7 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                                         </FormControl>
                                         {isEditMode && (
                                             <FormDescription className="text-xs text-zinc-400">
-                                                L'indirizzo email non può essere modificato.
+                                                L&apos;indirizzo email non può essere modificato.
                                             </FormDescription>
                                         )}
                                         <FormMessage />
@@ -361,6 +438,82 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                                         </FormItem>
                                     )}
                                 />
+                            )}
+
+                            {/* ==========================================
+                                ORARI DI LAVORO
+                            ========================================== */}
+                            {showSchedule && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-zinc-500" />
+                                        <Label className="text-zinc-700 font-medium text-sm">
+                                            Orari di Lavoro
+                                        </Label>
+                                    </div>
+                                    <div className="rounded-lg border border-zinc-200 divide-y divide-zinc-100 bg-white">
+                                        {DAYS_OF_WEEK.map((day) => {
+                                            const scheduleDay = schedule.find(
+                                                (s) => s.dayOfWeek === day.value
+                                            )!;
+
+                                            return (
+                                                <div
+                                                    key={day.value}
+                                                    className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${scheduleDay.enabled
+                                                            ? "bg-white"
+                                                            : "bg-zinc-50/50"
+                                                        }`}
+                                                >
+                                                    <Switch
+                                                        checked={scheduleDay.enabled}
+                                                        onCheckedChange={(checked) =>
+                                                            updateScheduleDay(day.value, { enabled: checked })
+                                                        }
+                                                    />
+                                                    <span
+                                                        className={`text-sm w-12 font-medium ${scheduleDay.enabled
+                                                                ? "text-zinc-700"
+                                                                : "text-zinc-400"
+                                                            }`}
+                                                    >
+                                                        {day.short}
+                                                    </span>
+
+                                                    {scheduleDay.enabled ? (
+                                                        <div className="flex items-center gap-2 ml-auto">
+                                                            <Input
+                                                                type="time"
+                                                                className="h-8 w-[100px] text-sm"
+                                                                value={scheduleDay.startTime}
+                                                                onChange={(e) =>
+                                                                    updateScheduleDay(day.value, {
+                                                                        startTime: e.target.value,
+                                                                    })
+                                                                }
+                                                            />
+                                                            <span className="text-zinc-400 text-xs">—</span>
+                                                            <Input
+                                                                type="time"
+                                                                className="h-8 w-[100px] text-sm"
+                                                                value={scheduleDay.endTime}
+                                                                onChange={(e) =>
+                                                                    updateScheduleDay(day.value, {
+                                                                        endTime: e.target.value,
+                                                                    })
+                                                                }
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <span className="ml-auto text-xs text-zinc-400">
+                                                            Giorno libero
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             )}
 
                             {/* Password — obbligatoria in creazione, opzionale in modifica */}

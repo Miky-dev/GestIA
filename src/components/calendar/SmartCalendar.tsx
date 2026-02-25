@@ -10,9 +10,18 @@ import { AppointmentSheet } from "./AppointmentSheet";
 import { updateAppointmentDates } from "@/actions/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { AppointmentStatus } from "@prisma/client";
+import { Users } from "lucide-react";
 
 import { EventClickArg, EventDropArg } from "@fullcalendar/core";
 import { EventResizeDoneArg } from "@fullcalendar/interaction";
+
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // Stili personalizzati per FullCalendar
 import "@/app/globals.css";
@@ -22,26 +31,36 @@ interface Appointment {
     startTime: Date;
     endTime: Date;
     customer: {
-        id: string; // Ensure id is here
+        id: string;
         firstName: string;
         lastName: string;
     };
     serviceType: string;
     status: AppointmentStatus;
-    price?: number | null; // Add price
+    price?: number | null;
+    userId?: string | null;
+    user?: { id: string; name: string } | null;
+}
+
+interface EmployeeForCalendar {
+    id: string;
+    name: string;
+    role: string;
+    specialty: string | null;
+    workSchedules: { dayOfWeek: number; startTime: string; endTime: string }[];
 }
 
 interface SmartCalendarProps {
     events: Appointment[];
+    employees: EmployeeForCalendar[];
 }
 
-export default function SmartCalendar({ events }: SmartCalendarProps) {
+export default function SmartCalendar({ events, employees }: SmartCalendarProps) {
     const calendarRef = useRef<FullCalendar>(null);
     const { toast } = useToast();
-    // Placeholder if router was needed, removing router
 
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    // Expand state type to include all needed fields
     const [selectedSlot, setSelectedSlot] = useState<{
         id?: string;
         start: Date;
@@ -51,11 +70,71 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
         price?: number | null;
         status?: AppointmentStatus;
         customerName?: string;
+        userId?: string;
     } | null>(null);
+
+    // Dipendente selezionato
+    const selectedEmployee = useMemo(
+        () => employees.find((e) => e.id === selectedEmployeeId) || null,
+        [employees, selectedEmployeeId]
+    );
+
+    // Filtra gli eventi per dipendente
+    const filteredEvents = useMemo(() => {
+        if (selectedEmployeeId === "all") return events;
+        return events.filter((evt) => evt.userId === selectedEmployeeId);
+    }, [events, selectedEmployeeId]);
+
+    // Calcola slotMinTime/slotMaxTime dinamico se filtrato per dipendente
+    const { slotMinTime, slotMaxTime } = useMemo(() => {
+        if (!selectedEmployee || selectedEmployee.workSchedules.length === 0) {
+            return { slotMinTime: "08:00:00", slotMaxTime: "20:00:00" };
+        }
+
+        const schedules = selectedEmployee.workSchedules;
+        let minHour = 23, minMinute = 59;
+        let maxHour = 0, maxMinute = 0;
+
+        for (const ws of schedules) {
+            const [sh, sm] = ws.startTime.split(":").map(Number);
+            const [eh, em] = ws.endTime.split(":").map(Number);
+
+            if (sh < minHour || (sh === minHour && sm < minMinute)) {
+                minHour = sh;
+                minMinute = sm;
+            }
+            if (eh > maxHour || (eh === maxHour && em > maxMinute)) {
+                maxHour = eh;
+                maxMinute = em;
+            }
+        }
+
+        // Aggiungi un po' di padding
+        const startPadded = Math.max(0, minHour - 1);
+        const endPadded = Math.min(24, maxHour + 1);
+
+        return {
+            slotMinTime: `${String(startPadded).padStart(2, "0")}:00:00`,
+            slotMaxTime: `${String(endPadded).padStart(2, "0")}:00:00`,
+        };
+    }, [selectedEmployee]);
+
+    // BusinessHours per FullCalendar
+    const businessHours = useMemo(() => {
+        if (!selectedEmployee || selectedEmployee.workSchedules.length === 0) {
+            return undefined;
+        }
+
+        return selectedEmployee.workSchedules.map((ws) => ({
+            daysOfWeek: [ws.dayOfWeek],
+            startTime: ws.startTime,
+            endTime: ws.endTime,
+        }));
+    }, [selectedEmployee]);
 
     // Mappa gli eventi del DB nel formato FullCalendar
     const calendarEvents = useMemo(() => {
-        return events.map((evt) => ({
+        return filteredEvents.map((evt) => ({
             id: evt.id,
             title: `${evt.customer.firstName} ${evt.customer.lastName} - ${evt.serviceType}`,
             start: new Date(evt.startTime),
@@ -69,14 +148,16 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                 customerId: evt.customer.id,
                 price: evt.price,
                 customerName: `${evt.customer.firstName} ${evt.customer.lastName}`,
+                userId: evt.userId,
             },
         }));
-    }, [events]);
+    }, [filteredEvents]);
 
     const handleDateSelect = (selectInfo: { start: Date; end: Date; view: { calendar: { unselect: () => void } } }) => {
         setSelectedSlot({
             start: selectInfo.start,
             end: selectInfo.end,
+            userId: selectedEmployeeId !== "all" ? selectedEmployeeId : undefined,
         });
         setIsSheetOpen(true);
         const calendarApi = selectInfo.view.calendar;
@@ -98,6 +179,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
             price: props.price,
             status: props.status,
             customerName: props.customerName,
+            userId: props.userId,
         });
         setIsSheetOpen(true);
     };
@@ -172,6 +254,30 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
 
     return (
         <div className="w-full h-full bg-background rounded-lg border shadow-sm p-4 calendar-wrapper relative">
+            {/* Filtro Operatore */}
+            <div className="flex items-center gap-3 mb-4">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                    <SelectTrigger className="w-[250px] h-9">
+                        <SelectValue placeholder="Filtra per operatore..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Tutti gli operatori</SelectItem>
+                        {employees.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                                {emp.name}
+                                {emp.specialty ? ` — ${emp.specialty}` : ""}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {selectedEmployee && (
+                    <span className="text-xs text-muted-foreground">
+                        {selectedEmployee.workSchedules.length} giorni lavorativi configurati
+                    </span>
+                )}
+            </div>
+
             <style jsx global>{`
                 .fc {
                     --fc-border-color: hsl(var(--border));
@@ -187,6 +293,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                     --fc-today-bg-color: hsl(var(--muted) / 0.3);
                     --fc-neutral-bg-color: hsl(var(--background));
                     --fc-list-event-hover-bg-color: hsl(var(--muted));
+                    --fc-non-business-color: hsl(var(--muted) / 0.4);
                     font-family: var(--font-sans), system-ui, sans-serif;
                 }
                 .fc-theme-standard .fc-scrollgrid {
@@ -214,6 +321,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
             `}</style>
 
             <FullCalendar
+                key={selectedEmployeeId}
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
@@ -223,10 +331,11 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
                 locale={itLocale}
-                slotMinTime="08:00:00"
-                slotMaxTime="20:00:00"
+                slotMinTime={slotMinTime}
+                slotMaxTime={slotMaxTime}
                 allDaySlot={false}
                 events={calendarEvents}
+                businessHours={businessHours || false}
                 height="auto"
                 stickyHeaderDates={true}
                 nowIndicator={true}
@@ -247,6 +356,7 @@ export default function SmartCalendar({ events }: SmartCalendarProps) {
                     setSelectedSlot(null);
                 }}
                 initialData={selectedSlot}
+                employees={employees}
             />
         </div>
     );

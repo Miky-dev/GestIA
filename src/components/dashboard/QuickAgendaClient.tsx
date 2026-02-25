@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Appointment, Customer, AppointmentStatus } from "@prisma/client";
 import { AppointmentSheet } from "@/components/calendar/AppointmentSheet";
+import { getActiveEmployees } from "@/actions/employees";
 import { Clock } from "lucide-react";
 
 type QuickAgendaAppointment = Appointment & { customer: Customer };
@@ -15,6 +16,15 @@ interface QuickAgendaClientProps {
 export function QuickAgendaClient({ appointments }: QuickAgendaClientProps) {
     const [selectedAppointment, setSelectedAppointment] = useState<QuickAgendaAppointment | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [employees, setEmployees] = useState<{ id: string; name: string; role: string; specialty: string | null; workSchedules: { dayOfWeek: number; startTime: string; endTime: string }[] }[]>([]);
+
+    useEffect(() => {
+        getActiveEmployees().then((result) => {
+            if (result.success && result.data) {
+                setEmployees(result.data);
+            }
+        });
+    }, []);
 
     const handleAppointmentClick = (appointment: QuickAgendaAppointment) => {
         setSelectedAppointment(appointment);
@@ -74,9 +84,11 @@ export function QuickAgendaClient({ appointments }: QuickAgendaClientProps) {
                             price: selectedAppointment.price ? Number(selectedAppointment.price) : null,
                             status: selectedAppointment.status as AppointmentStatus,
                             customerName: `${selectedAppointment.customer.firstName} ${selectedAppointment.customer.lastName}`,
+                            userId: selectedAppointment.userId || undefined,
                         }
                         : null
                 }
+                employees={employees}
             />
         </>
     );

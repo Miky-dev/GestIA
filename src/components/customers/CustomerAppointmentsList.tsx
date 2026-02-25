@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarDays, Edit, MoreVertical } from "lucide-react";
@@ -21,6 +21,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppointmentSheet } from "@/components/calendar/AppointmentSheet";
+import { getActiveEmployees } from "@/actions/employees";
 
 interface Appointment {
     id: string;
@@ -45,6 +46,15 @@ export function CustomerAppointmentsList({
     const router = useRouter();
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [employees, setEmployees] = useState<{ id: string; name: string; role: string; specialty: string | null; workSchedules: { dayOfWeek: number; startTime: string; endTime: string }[] }[]>([]);
+
+    useEffect(() => {
+        getActiveEmployees().then((result) => {
+            if (result.success && result.data) {
+                setEmployees(result.data);
+            }
+        });
+    }, []);
 
     const handleEdit = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
@@ -110,6 +120,7 @@ export function CustomerAppointmentsList({
                         price: selectedAppointment.price,
                         customerName: customerName
                     } : null}
+                    employees={employees}
                 />
             </>
         );
@@ -193,6 +204,7 @@ export function CustomerAppointmentsList({
                     price: selectedAppointment.price,
                     customerName: customerName
                 } : null}
+                employees={employees}
             />
         </>
     );

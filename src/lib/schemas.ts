@@ -31,6 +31,18 @@ export const updateAppointmentSchema = baseAppointmentSchema.partial().extend({
 });
 
 // ==========================================
+// SCHEMI DI VALIDAZIONE ZOD - ORARI LAVORO
+// ==========================================
+
+export const workScheduleItemSchema = z.object({
+    dayOfWeek: z.number().int().min(0).max(6),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato orario non valido (HH:mm)"),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato orario non valido (HH:mm)"),
+});
+
+export type WorkScheduleItem = z.infer<typeof workScheduleItemSchema>;
+
+// ==========================================
 // SCHEMI DI VALIDAZIONE ZOD - DIPENDENTI
 // ==========================================
 
@@ -40,11 +52,13 @@ export const createEmployeeSchema = z.object({
     role: z.nativeEnum(Role, { message: "Seleziona un ruolo valido" }),
     password: z.string().min(8, "La password deve avere almeno 8 caratteri"),
     specialty: z.string().optional(),
+    workSchedules: z.array(workScheduleItemSchema).optional(),
 });
 
 export const updateEmployeeSchema = createEmployeeSchema.partial().extend({
     password: z.string().min(8, "La password deve avere almeno 8 caratteri").optional().or(z.literal("")),
     specialty: z.string().optional().nullable(),
+    workSchedules: z.array(workScheduleItemSchema).optional(),
 });
 
 export type CreateEmployeeData = z.infer<typeof createEmployeeSchema>;

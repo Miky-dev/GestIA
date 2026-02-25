@@ -1,17 +1,13 @@
 import { Suspense } from "react";
 import SmartCalendar from "@/components/calendar/SmartCalendar";
 import { getAppointments } from "@/actions/calendar";
+import { getActiveEmployees } from "@/actions/employees";
 import { AppointmentStatus } from "@prisma/client";
 
 // Questa pagina è dinamica perché i dati cambiano spesso
 export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
-    // Calcola il range del mese corrente (o un range più ampio per sicurezza)
-    // FullCalendar gestisce la vista, ma noi dobbiamo passare gli eventi. 
-    // Per ora carichiamo un range ampio (es. mese corrente +/- 1 mese) o tutto se non ci sono troppi dati.
-    // L'utente ha chiesto "mese corrente".
-
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
@@ -23,28 +19,66 @@ export default async function CalendarPage() {
     const endQuery = new Date(endOfMonth);
     endQuery.setDate(endQuery.getDate() + 7);
 
-    let appointments: { id: string; startTime: Date; endTime: Date; serviceType: string; price?: number | null; status: AppointmentStatus; customer: { id: string; firstName: string; lastName: string; } }[] = [];
+    // Fetch parallelo: appuntamenti + dipendenti attivi
+    let appointments: {
+        id: string;
+        startTime: Date;
+        endTime: Date;
+        serviceType: string;
+        price?: number | null;
+        status: AppointmentStatus;
+        userId?: string | null;
+        customer: { id: string; firstName: string; lastName: string };
+        user?: { id: string; name: string } | null;
+    }[] = [];
+
+    let employees: {
+        id: string;
+        name: string;
+        role: string;
+        specialty: string | null;
+        workSchedules: { dayOfWeek: number; startTime: string; endTime: string }[];
+    }[] = [];
+
     try {
-        const result = await getAppointments(startQuery, endQuery);
-        if (result.success && result.data) {
-            // Converti i dati per evitare errori di serializzazione (Decimal di Prisma)
-            appointments = result.data.map((apt: { id: string; startTime: Date; endTime: Date; serviceType: string; price?: unknown; status: AppointmentStatus; customer: { id: string; firstName: string; lastName: string; } }) => ({
+        const [appointmentsResult, employeesResult] = await Promise.all([
+            getAppointments(startQuery, endQuery),
+            getActiveEmployees(),
+        ]);
+
+        if (appointmentsResult.success && appointmentsResult.data) {
+            appointments = appointmentsResult.data.map((apt: {
+                id: string;
+                startTime: Date;
+                endTime: Date;
+                serviceType: string;
+                price?: unknown;
+                status: AppointmentStatus;
+                userId?: string | null;
+                customer: { id: string; firstName: string; lastName: string };
+                user?: { id: string; name: string } | null;
+            }) => ({
                 id: apt.id,
                 startTime: apt.startTime,
                 endTime: apt.endTime,
                 serviceType: apt.serviceType,
                 status: apt.status,
+                userId: apt.userId || null,
                 customer: {
                     id: apt.customer.id,
                     firstName: apt.customer.firstName,
                     lastName: apt.customer.lastName,
                 },
-                // Aggiungiamo il prezzo per mostrarlo nell'edit
+                user: apt.user || null,
                 price: apt.price ? Number(apt.price) : null,
             }));
         }
+
+        if (employeesResult.success && employeesResult.data) {
+            employees = employeesResult.data;
+        }
     } catch (error) {
-        console.error("Errore recupero appuntamenti:", error);
+        console.error("Errore recupero dati calendario:", error);
     }
 
     return (
@@ -52,7 +86,7 @@ export default async function CalendarPage() {
             <h1 className="text-2xl font-bold">Calendario Appuntamenti</h1>
             <div className="flex-1 min-h-[600px]">
                 <Suspense fallback={<div className="p-4">Caricamento calendario...</div>}>
-                    <SmartCalendar events={appointments} />
+                    <SmartCalendar events={appointments} employees={employees} />
                 </Suspense>
             </div>
         </div>

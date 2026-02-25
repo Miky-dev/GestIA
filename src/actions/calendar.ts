@@ -42,7 +42,7 @@ export async function getAppointmentsByCustomerId(customerId: string) {
  * Recupera gli appuntamenti in un determinato range di date.
  * Strict Multi-tenant: Filtra sempre per companyId.
  */
-export async function getAppointments(startDate: Date, endDate: Date) {
+export async function getAppointments(startDate: Date, endDate: Date, userId?: string) {
     const session = await auth();
 
     if (!session?.user?.companyId) {
@@ -50,18 +50,28 @@ export async function getAppointments(startDate: Date, endDate: Date) {
     }
 
     try {
-        const appointments = await prisma.appointment.findMany({
-            where: {
-                companyId: session.user.companyId,
-                startTime: {
-                    gte: startDate,
-                },
-                endTime: {
-                    lte: endDate,
-                },
+        const whereClause: Record<string, unknown> = {
+            companyId: session.user.companyId,
+            startTime: {
+                gte: startDate,
             },
+            endTime: {
+                lte: endDate,
+            },
+        };
+
+        // Filtro opzionale per dipendente
+        if (userId) {
+            whereClause.userId = userId;
+        }
+
+        const appointments = await prisma.appointment.findMany({
+            where: whereClause,
             include: {
                 customer: true,
+                user: {
+                    select: { id: true, name: true },
+                },
             },
             orderBy: {
                 startTime: 'asc',
@@ -242,7 +252,7 @@ export async function updateAppointment(id: string, data: unknown) {
         return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const { customerId, startTime, endTime, serviceType, price, status } = parsed.data;
+    const { customerId, startTime, endTime, serviceType, price, status, userId } = parsed.data;
 
     try {
         // 1. Verifica che l'appuntamento esista e appartenga alla company
@@ -278,10 +288,14 @@ export async function updateAppointment(id: string, data: unknown) {
                 endTime: new Date(endTime),
                 serviceType,
                 price: price ? Number(price) : null,
+                userId: userId || null,
                 status: status || 'SCHEDULED',
             },
             include: {
-                customer: true
+                customer: true,
+                user: {
+                    select: { id: true, name: true },
+                },
             }
         });
 

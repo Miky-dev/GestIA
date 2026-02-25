@@ -49,6 +49,7 @@ import { AppointmentStatus } from "@prisma/client";
 
 const appointmentSchema = z.object({
     customerId: z.string().min(1, "Seleziona un cliente"),
+    userId: z.string().min(1, "Seleziona un operatore"),
     serviceType: z.string().min(3, "Inserisci almeno 3 caratteri"),
     startTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
         message: "Data inizio non valida",
@@ -62,6 +63,14 @@ const appointmentSchema = z.object({
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>;
 
+interface EmployeeForAppointment {
+    id: string;
+    name: string;
+    role: string;
+    specialty: string | null;
+    workSchedules: { dayOfWeek: number; startTime: string; endTime: string }[];
+}
+
 interface AppointmentSheetProps {
     isOpen: boolean;
     onClose: () => void;
@@ -73,14 +82,17 @@ interface AppointmentSheetProps {
         serviceType?: string;
         price?: number | null;
         status?: AppointmentStatus;
-        customerName?: string; // Optional for display
+        customerName?: string;
+        userId?: string;
     } | null;
+    employees: EmployeeForAppointment[];
 }
 
 export function AppointmentSheet({
     isOpen,
     onClose,
     initialData,
+    employees,
 }: AppointmentSheetProps) {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -94,6 +106,7 @@ export function AppointmentSheet({
         resolver: zodResolver(appointmentSchema),
         defaultValues: {
             customerId: "",
+            userId: "",
             serviceType: "",
             startTime: "",
             endTime: "",
@@ -129,10 +142,6 @@ export function AppointmentSheet({
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-                // Formatta le date per input datetime-local (YYYY-MM-DDTHH:mm)
-                // Nota: toISOString() restituisce UTC. Per mantenere l'ora locale del browser, 
-                // dobbiamo gestire il fuso orario o usare una libreria come date-fns.
-                // Qui facciamo una conversione manuale semplice per evitare dipendenze extra se non presenti.
                 const toLocalISO = (date: Date) => {
                     const pad = (n: number) => n < 10 ? '0' + n : n;
                     return date.getFullYear() +
@@ -144,6 +153,7 @@ export function AppointmentSheet({
 
                 form.reset({
                     customerId: initialData.customerId || "",
+                    userId: initialData.userId || "",
                     serviceType: initialData.serviceType || "",
                     startTime: toLocalISO(initialData.start),
                     endTime: toLocalISO(initialData.end),
@@ -153,6 +163,7 @@ export function AppointmentSheet({
             } else {
                 form.reset({
                     customerId: "",
+                    userId: "",
                     serviceType: "",
                     startTime: "",
                     endTime: "",
@@ -255,7 +266,7 @@ export function AppointmentSheet({
                                     <FormLabel>Cliente</FormLabel>
                                     <Select
                                         onValueChange={field.onChange}
-                                        defaultValue={field.value}
+                                        value={field.value}
                                         disabled={loadingCustomers || isPending}
                                     >
                                         <FormControl>
@@ -272,6 +283,42 @@ export function AppointmentSheet({
                                             {customers.length === 0 && !loadingCustomers && (
                                                 <div className="p-2 text-sm text-muted-foreground text-center">
                                                     Nessun cliente trovato
+                                                </div>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Operatore */}
+                        <FormField
+                            control={form.control}
+                            name="userId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Operatore</FormLabel>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        disabled={isPending}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seleziona un operatore..." />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {employees.map((emp) => (
+                                                <SelectItem key={emp.id} value={emp.id}>
+                                                    {emp.name}
+                                                    {emp.specialty ? ` — ${emp.specialty}` : ""}
+                                                </SelectItem>
+                                            ))}
+                                            {employees.length === 0 && (
+                                                <div className="p-2 text-sm text-muted-foreground text-center">
+                                                    Nessun operatore trovato
                                                 </div>
                                             )}
                                         </SelectContent>
@@ -353,7 +400,7 @@ export function AppointmentSheet({
                                             <FormLabel>Stato</FormLabel>
                                             <Select
                                                 onValueChange={field.onChange}
-                                                defaultValue={field.value}
+                                                value={field.value}
                                                 disabled={isPending}
                                             >
                                                 <FormControl>
@@ -388,7 +435,7 @@ export function AppointmentSheet({
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Questa azione non può essere annullata. L'appuntamento verrà eliminato definitivamente.
+                                                Questa azione non può essere annullata. L&apos;appuntamento verrà eliminato definitivamente.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>

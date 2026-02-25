@@ -126,6 +126,7 @@ model User {
   assignedConversations Conversation[]
   appointments          Appointment[] // Appuntamenti assegnati a questo operatore
   tasks                 Task[] // Task assegnati all'operatore
+  workSchedules         WorkSchedule[] // Orari di lavoro settimanali
 
   @@index([companyId])
   @@map("users")
@@ -286,4 +287,22 @@ model Task {
   @@index([companyId, assigneeId, dueDate])
   @@index([companyId, status, isArchived])
   @@map("tasks")
+}
+
+// ==========================================
+// WORK SCHEDULE MODEL (Orari Lavoro)
+// ==========================================
+
+model WorkSchedule {
+  id        String @id @default(uuid())
+  userId    String
+  dayOfWeek Int    // 0=Domenica, 1=Lunedì, ..., 6=Sabato
+  startTime String // "09:00"
+  endTime   String // "18:00"
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+  @@map("work_schedules")
 }
