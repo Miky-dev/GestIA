@@ -37,12 +37,13 @@ async function requireAdminSession() {
 
 /**
  * Verifica che l'email dell'admin sia confermata.
- * Lancia errore con messaggio UI-friendly se non verificata.
+ * Ritorna un oggetto { verified: false, error } se non verificata.
  */
-async function requireVerifiedEmail(session: Awaited<ReturnType<typeof requireAdminSession>>) {
+function checkVerifiedEmail(session: Awaited<ReturnType<typeof requireAdminSession>>) {
     if (!session.user.isEmailVerified) {
-        throw new Error('EMAIL_NOT_VERIFIED: Verifica la tua email per eseguire questa operazione.');
+        return { verified: false as const, error: 'Verifica la tua email prima di gestire il team. Controlla la tua casella di posta.' };
     }
+    return { verified: true as const };
 }
 
 // ==========================================
@@ -68,6 +69,7 @@ export async function getEmployees() {
                 email: true,
                 role: true,
                 isActive: true,
+                specialty: true,
                 createdAt: true,
             },
             orderBy: {
@@ -95,7 +97,10 @@ export async function getEmployees() {
  */
 export async function createEmployee(data: CreateEmployeeData) {
     const session = await requireAdminSession();
-    await requireVerifiedEmail(session);
+    const emailCheck = checkVerifiedEmail(session);
+    if (!emailCheck.verified) {
+        return { success: false, error: emailCheck.error };
+    }
 
     const parsed = createEmployeeSchema.safeParse(data);
     if (!parsed.success) {
@@ -115,6 +120,7 @@ export async function createEmployee(data: CreateEmployeeData) {
                 role,
                 passwordHash,
                 isActive: true,
+                specialty: parsed.data.specialty || null,
             },
             select: {
                 id: true,
@@ -122,6 +128,7 @@ export async function createEmployee(data: CreateEmployeeData) {
                 email: true,
                 role: true,
                 isActive: true,
+                specialty: true,
                 createdAt: true,
             },
         });
@@ -156,7 +163,10 @@ export async function createEmployee(data: CreateEmployeeData) {
  */
 export async function updateEmployee(id: string, data: UpdateEmployeeData) {
     const session = await requireAdminSession();
-    await requireVerifiedEmail(session);
+    const emailCheck = checkVerifiedEmail(session);
+    if (!emailCheck.verified) {
+        return { success: false, error: emailCheck.error };
+    }
 
     const parsed = updateEmployeeSchema.safeParse(data);
     if (!parsed.success) {
@@ -181,10 +191,12 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
             name?: string;
             role?: Role;
             passwordHash?: string;
+            specialty?: string | null;
         } = {};
 
         if (parsed.data.name !== undefined) updatePayload.name = parsed.data.name;
         if (parsed.data.role !== undefined) updatePayload.role = parsed.data.role;
+        if (parsed.data.specialty !== undefined) updatePayload.specialty = parsed.data.specialty || null;
 
         if (parsed.data.password) {
             updatePayload.passwordHash = await hash(parsed.data.password, 10);
@@ -199,6 +211,7 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
                 email: true,
                 role: true,
                 isActive: true,
+                specialty: true,
                 createdAt: true,
             },
         });
@@ -225,7 +238,10 @@ export async function updateEmployee(id: string, data: UpdateEmployeeData) {
  */
 export async function toggleEmployeeStatus(id: string) {
     const session = await requireAdminSession();
-    await requireVerifiedEmail(session);
+    const emailCheck = checkVerifiedEmail(session);
+    if (!emailCheck.verified) {
+        return { success: false, error: emailCheck.error };
+    }
 
     try {
         // Recupera l'utente filtrando per id + companyId
@@ -252,6 +268,7 @@ export async function toggleEmployeeStatus(id: string) {
                 email: true,
                 role: true,
                 isActive: true,
+                specialty: true,
                 createdAt: true,
             },
         });

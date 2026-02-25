@@ -113,6 +113,9 @@ export function EmployeesClient({ employees }: EmployeesClientProps) {
                                     Ruolo
                                 </TableHead>
                                 <TableHead className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                                    Specialità
+                                </TableHead>
+                                <TableHead className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
                                     Stato
                                 </TableHead>
                                 <TableHead className="w-[52px]" />
@@ -130,8 +133,8 @@ export function EmployeesClient({ employees }: EmployeesClientProps) {
                                             <Avatar className="h-8 w-8 shrink-0">
                                                 <AvatarFallback
                                                     className={`text-xs font-semibold border ${employee.isActive
-                                                            ? "bg-zinc-100 text-zinc-700 border-zinc-200"
-                                                            : "bg-zinc-50 text-zinc-400 border-zinc-100"
+                                                        ? "bg-zinc-100 text-zinc-700 border-zinc-200"
+                                                        : "bg-zinc-50 text-zinc-400 border-zinc-100"
                                                         }`}
                                                 >
                                                     {employee.name
@@ -165,6 +168,13 @@ export function EmployeesClient({ employees }: EmployeesClientProps) {
                                             >
                                                 Admin
                                             </Badge>
+                                        ) : employee.role === "EMPLOYEE" ? (
+                                            <Badge
+                                                variant="secondary"
+                                                className="bg-emerald-50 text-emerald-700 border-emerald-100 border font-medium text-xs"
+                                            >
+                                                Dipendente
+                                            </Badge>
                                         ) : (
                                             <Badge
                                                 variant="secondary"
@@ -173,6 +183,11 @@ export function EmployeesClient({ employees }: EmployeesClientProps) {
                                                 Segreteria
                                             </Badge>
                                         )}
+                                    </TableCell>
+
+                                    {/* Specialità */}
+                                    <TableCell className="text-sm text-zinc-500 py-3.5">
+                                        {employee.specialty || "—"}
                                     </TableCell>
 
                                     {/* Stato */}
@@ -220,8 +235,8 @@ export function EmployeesClient({ employees }: EmployeesClientProps) {
                                                 <DropdownMenuItem
                                                     onClick={() => openToggle(employee)}
                                                     className={`cursor-pointer ${employee.isActive
-                                                            ? "text-red-600 focus:text-red-700 focus:bg-red-50"
-                                                            : "text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
+                                                        ? "text-red-600 focus:text-red-700 focus:bg-red-50"
+                                                        : "text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
                                                         }`}
                                                 >
                                                     {employee.isActive ? (

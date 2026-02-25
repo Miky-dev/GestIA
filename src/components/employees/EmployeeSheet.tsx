@@ -4,7 +4,7 @@ import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, UserPlus, Shield, UserCog } from "lucide-react";
+import { Loader2, UserPlus, Shield, UserCog, Stethoscope } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,8 +36,9 @@ export interface Employee {
     id: string;
     name: string;
     email: string;
-    role: "ADMIN" | "SECRETARY";
+    role: "ADMIN" | "SECRETARY" | "EMPLOYEE";
     isActive: boolean;
+    specialty: string | null;
     createdAt: Date;
 }
 
@@ -54,13 +55,14 @@ interface EmployeeSheetProps {
 const baseSchema = z.object({
     name: z.string().min(2, "Il nome deve avere almeno 2 caratteri"),
     email: z.string().email("Inserisci un'email valida"),
-    role: z.enum(["ADMIN", "SECRETARY"]),
+    role: z.enum(["ADMIN", "SECRETARY", "EMPLOYEE"]),
     password: z
         .string()
         .optional()
         .refine((val) => !val || val.length >= 6, {
             message: "La password deve avere almeno 6 caratteri",
         }),
+    specialty: z.string().optional(),
 });
 
 // In creazione forziamo password obbligatoria (min 6)
@@ -76,7 +78,7 @@ type EmployeeFormValues = z.infer<typeof baseSchema>;
 // LABEL RUOLO
 // ==========================================
 
-const roleConfig: Record<"ADMIN" | "SECRETARY", { label: string; description: string; icon: React.ReactNode }> = {
+const roleConfig: Record<"ADMIN" | "SECRETARY" | "EMPLOYEE", { label: string; description: string; icon: React.ReactNode }> = {
     ADMIN: {
         label: "Admin",
         description: "Accesso completo al sistema",
@@ -86,6 +88,11 @@ const roleConfig: Record<"ADMIN" | "SECRETARY", { label: string; description: st
         label: "Segreteria",
         description: "Gestione clienti e appuntamenti",
         icon: <UserCog className="h-4 w-4 text-blue-500" />,
+    },
+    EMPLOYEE: {
+        label: "Dipendente",
+        description: "Operatore con specialità",
+        icon: <Stethoscope className="h-4 w-4 text-emerald-500" />,
     },
 };
 
@@ -106,6 +113,7 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
             email: "",
             role: "SECRETARY",
             password: "",
+            specialty: "",
         },
     });
 
@@ -117,6 +125,7 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                 email: employeeToEdit.email,
                 role: employeeToEdit.role,
                 password: "",
+                specialty: employeeToEdit.specialty || "",
             });
         } else {
             form.reset({
@@ -124,6 +133,7 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                 email: "",
                 role: "SECRETARY",
                 password: "",
+                specialty: "",
             });
         }
     }, [employeeToEdit, form]);
@@ -142,8 +152,9 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                 if (isEditMode && employeeToEdit) {
                     const result = await updateEmployee(employeeToEdit.id, {
                         name: data.name,
-                        role: data.role as "ADMIN" | "SECRETARY",
+                        role: data.role as "ADMIN" | "SECRETARY" | "EMPLOYEE",
                         password: data.password || undefined,
+                        specialty: data.role === "EMPLOYEE" ? (data.specialty || undefined) : null,
                     });
 
                     if (!result.success) {
@@ -163,13 +174,14 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                     const result = await createEmployee({
                         name: data.name,
                         email: data.email,
-                        role: data.role as "ADMIN" | "SECRETARY",
+                        role: data.role as "ADMIN" | "SECRETARY" | "EMPLOYEE",
                         password: data.password!,
+                        specialty: data.role === "EMPLOYEE" ? (data.specialty || undefined) : undefined,
                     });
 
                     if (!result.success) {
-                        // Errore email duplicata
-                        if (result.error?.includes("email")) {
+                        // Errore email duplicata (messaggio specifico dal server)
+                        if (result.error?.includes("esiste già")) {
                             toast({
                                 title: "Email già in uso",
                                 description: "Un dipendente con questa email esiste già in azienda.",
@@ -288,8 +300,8 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                                             Ruolo
                                         </FormLabel>
                                         <FormControl>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {(["ADMIN", "SECRETARY"] as const).map((role) => {
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {(["ADMIN", "SECRETARY", "EMPLOYEE"] as const).map((role) => {
                                                     const config = roleConfig[role];
                                                     const isSelected = field.value === role;
                                                     return (
@@ -324,6 +336,32 @@ export function EmployeeSheet({ isOpen, onClose, employeeToEdit }: EmployeeSheet
                                     </FormItem>
                                 )}
                             />
+
+                            {/* Specialità — visibile solo quando ruolo è EMPLOYEE */}
+                            {form.watch("role") === "EMPLOYEE" && (
+                                <FormField
+                                    control={form.control}
+                                    name="specialty"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-zinc-700 font-medium">
+                                                Specialità
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="es. Medico, Dentista, Estetista"
+                                                    className="h-10"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormDescription className="text-xs text-zinc-400">
+                                                La professione o il ruolo operativo del dipendente.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             {/* Password — obbligatoria in creazione, opzionale in modifica */}
                             <FormField

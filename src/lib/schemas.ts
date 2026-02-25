@@ -38,11 +38,13 @@ export const createEmployeeSchema = z.object({
     name: z.string().min(2, "Il nome deve avere almeno 2 caratteri"),
     email: z.string().email("Inserisci un'email valida"),
     role: z.nativeEnum(Role, { message: "Seleziona un ruolo valido" }),
-    password: z.string().min(8, "La password deve avere almeno 8 caratteri")
+    password: z.string().min(8, "La password deve avere almeno 8 caratteri"),
+    specialty: z.string().optional(),
 });
 
 export const updateEmployeeSchema = createEmployeeSchema.partial().extend({
-    password: z.string().min(8, "La password deve avere almeno 8 caratteri").optional().or(z.literal(""))
+    password: z.string().min(8, "La password deve avere almeno 8 caratteri").optional().or(z.literal("")),
+    specialty: z.string().optional().nullable(),
 });
 
 export type CreateEmployeeData = z.infer<typeof createEmployeeSchema>;
