@@ -117,7 +117,10 @@ export default async function DashboardPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <QuickAgendaClient appointments={metrics.upcomingAppointments} />
+                            <QuickAgendaClient appointments={metrics.upcomingAppointments.map(apt => ({
+                                ...apt,
+                                price: apt.price ? Number(apt.price) : null,
+                            }))} />
                         </CardContent>
                     </Card>
                 </div>

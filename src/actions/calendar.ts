@@ -60,9 +60,12 @@ export async function getAppointments(startDate: Date, endDate: Date, userId?: s
             },
         };
 
-        // Filtro opzionale per dipendente
+        // Filtro per dipendente: esplicito o automatico per ruolo EMPLOYEE
         if (userId) {
             whereClause.userId = userId;
+        } else if (session.user.role === 'EMPLOYEE') {
+            // I dipendenti vedono solo i propri appuntamenti
+            whereClause.userId = session.user.id;
         }
 
         const appointments = await prisma.appointment.findMany({

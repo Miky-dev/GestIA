@@ -2,12 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Appointment, Customer, AppointmentStatus } from "@prisma/client";
+import { Customer, AppointmentStatus } from "@prisma/client";
 import { AppointmentSheet } from "@/components/calendar/AppointmentSheet";
 import { getActiveEmployees } from "@/actions/employees";
 import { Clock } from "lucide-react";
 
-type QuickAgendaAppointment = Appointment & { customer: Customer };
+type QuickAgendaAppointment = Omit<{
+    id: string;
+    companyId: string;
+    customerId: string;
+    userId: string | null;
+    startTime: Date;
+    endTime: Date;
+    status: AppointmentStatus;
+    serviceType: string;
+    price: number | null;
+    description: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    reminderSent: boolean;
+}, never> & { customer: Customer };
 
 interface QuickAgendaClientProps {
     appointments: QuickAgendaAppointment[];

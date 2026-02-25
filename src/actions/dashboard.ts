@@ -22,8 +22,16 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         }
 
         const companyId = session.user.companyId;
+        const userRole = session.user.role;
+        const userId = session.user.id;
         const todayStart = startOfToday();
         const todayEnd = endOfToday();
+
+        // Base filter: EMPLOYEE vede solo i propri appuntamenti
+        const appointmentBaseFilter: Record<string, unknown> = { companyId };
+        if (userRole === 'EMPLOYEE') {
+            appointmentBaseFilter.userId = userId;
+        }
 
         const [
             appointmentsTodayCount,
@@ -36,7 +44,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             // 1. Conto degli appuntamenti di oggi
             prisma.appointment.count({
                 where: {
-                    companyId,
+                    ...appointmentBaseFilter,
                     startTime: {
                         gte: todayStart,
                         lte: todayEnd
@@ -47,7 +55,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             // 2. Ricavo previsto per oggi (somma prezzi degli appuntamenti completati o programmati)
             prisma.appointment.aggregate({
                 where: {
-                    companyId,
+                    ...appointmentBaseFilter,
                     startTime: {
                         gte: todayStart,
                         lte: todayEnd
@@ -74,9 +82,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             // 4. Prossimi 5 appuntamenti di oggi
             prisma.appointment.findMany({
                 where: {
-                    companyId,
+                    ...appointmentBaseFilter,
                     startTime: {
-                        gte: new Date(), // Solo quelli da adesso in poi
+                        gte: new Date(),
                         lte: todayEnd
                     },
                     status: "SCHEDULED"
