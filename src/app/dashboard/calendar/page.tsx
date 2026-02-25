@@ -39,8 +39,8 @@ export default async function CalendarPage() {
                     firstName: apt.customer.firstName,
                     lastName: apt.customer.lastName,
                 },
-                // Se servisse il prezzo in futuro, convertilo qui:
-                // price: apt.price ? Number(apt.price) : null,
+                // Aggiungiamo il prezzo per mostrarlo nell'edit
+                price: apt.price ? Number(apt.price) : null,
             }));
         }
     } catch (error) {

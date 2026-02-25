@@ -14,6 +14,7 @@ import {
     DragStartEvent,
     DragOverlay,
     defaultDropAnimationSideEffects,
+    useDroppable,
 } from "@dnd-kit/core";
 import {
     SortableContext,
@@ -169,6 +170,27 @@ function SortableTaskCard({ task }: SortableTaskCardProps) {
 }
 
 // =====================================
+// SOTTO-COMPONENTE: DROPPABLE COLUMN
+// =====================================
+function DroppableColumn({ col, children }: { col: { id: string; title: string, tasks: any[] }, children: React.ReactNode }) {
+    const { isOver, setNodeRef } = useDroppable({
+        id: col.id,
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`bg-muted/30 p-2 min-h-[500px] rounded-xl flex flex-col gap-3 transition-colors duration-200 ${isOver ? "bg-muted/50 ring-2 ring-primary/20" : ""
+                }`}
+        >
+            <SortableContext items={col.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                {children}
+            </SortableContext>
+        </div>
+    );
+}
+
+// =====================================
 // COMPONENTE PRINCIPALE: KANBAN BOARD
 // =====================================
 interface TaskKanbanBoardProps {
@@ -287,18 +309,10 @@ export function TaskKanbanBoard({ initialTasks }: TaskKanbanBoardProps) {
                         </div>
 
                         {/* Colore di Sfondo Droppabile */}
-                        <div
-                            className="bg-muted/30 p-2 min-h-[500px] rounded-xl flex flex-col gap-3 transition-colors duration-200"
-                            id={col.id} // ID colonna per DND
-                        >
-                            <SortableContext
-                                items={col.tasks.map(t => t.id)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                {col.tasks.map((task) => (
-                                    <SortableTaskCard key={task.id} task={task} />
-                                ))}
-                            </SortableContext>
+                        <DroppableColumn col={col}>
+                            {col.tasks.map((task) => (
+                                <SortableTaskCard key={task.id} task={task} />
+                            ))}
 
                             {/* Area vuota per il drop se la colonna è vuota (invisibile ma intercettabile) */}
                             {col.tasks.length === 0 && (
@@ -306,7 +320,7 @@ export function TaskKanbanBoard({ initialTasks }: TaskKanbanBoardProps) {
                                     Trascina qui...
                                 </div>
                             )}
-                        </div>
+                        </DroppableColumn>
                     </div>
                 ))}
             </div>
