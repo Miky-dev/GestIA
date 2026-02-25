@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, MessageSquare, CircleDollarSign, Plus, Users, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { QuickAgendaClient } from "@/components/dashboard/QuickAgendaClient";
 
 export default async function DashboardPage() {
     const session = await auth();
@@ -116,38 +117,7 @@ export default async function DashboardPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {metrics.upcomingAppointments.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-lg bg-muted/30">
-                                    <Clock className="w-10 h-10 text-muted-foreground/30 mb-4" />
-                                    <h3 className="text-lg font-medium text-foreground">Nessun appuntamento previsto</h3>
-                                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                                        Non hai appuntamenti in programma per il resto della giornata.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {metrics.upcomingAppointments.map((appointment) => (
-                                        <div
-                                            key={appointment.id}
-                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="font-semibold text-foreground min-w-[60px]">
-                                                    {format(new Date(appointment.startTime), "HH:mm")}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-foreground">
-                                                        {appointment.customer.firstName} {appointment.customer.lastName}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                                {appointment.serviceType}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <QuickAgendaClient appointments={metrics.upcomingAppointments} />
                         </CardContent>
                     </Card>
                 </div>

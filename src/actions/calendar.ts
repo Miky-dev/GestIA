@@ -124,6 +124,7 @@ export async function createAppointment(data: unknown) {
         });
 
         revalidatePath('/dashboard/calendar');
+        revalidatePath('/dashboard');
 
         // Converti per evitare errore serializzazione Decimal
         return {
@@ -173,6 +174,7 @@ export async function updateAppointmentDates(id: string, startTime: Date, endTim
         });
 
         revalidatePath('/dashboard/calendar');
+        revalidatePath('/dashboard');
 
         // Converti per evitare errore serializzazione Decimal
         return {
@@ -215,6 +217,7 @@ export async function deleteAppointment(id: string) {
         }
 
         revalidatePath('/dashboard/calendar');
+        revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
         console.error('Errore cancellazione appuntamento:', error);
@@ -302,6 +305,7 @@ export async function updateAppointment(id: string, data: unknown) {
 
         revalidatePath('/dashboard/calendar');
         revalidatePath('/dashboard/tasks');
+        revalidatePath('/dashboard');
 
         // Converti per evitare errore serializzazione Decimal
         return {
