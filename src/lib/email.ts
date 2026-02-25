@@ -1,10 +1,13 @@
 import { Resend } from 'resend';
 
-const resendApiKey = process.env.RESEND_API_KEY || 're_dummy_fallback_for_build';
-const resend = new Resend(resendApiKey);
+const resendApiKey = process.env.RESEND_API_KEY;
+if (!resendApiKey || resendApiKey.startsWith('re_dummy')) {
+  console.warn('⚠️ RESEND_API_KEY non configurata o non valida. Le email non verranno inviate realmente.');
+}
+const resend = new Resend(resendApiKey || 're_dummy_fallback_for_build');
 
 const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
-const FROM_EMAIL = process.env.FROM_EMAIL ?? 'GestIA <noreply@gestia.app>';
+const FROM_EMAIL = process.env.FROM_EMAIL ?? 'onboarding@resend.dev';
 
 /**
  * Invia email di verifica all'ADMIN appena registrato.
