@@ -63,6 +63,7 @@ export async function getConversationWithMessages(conversationId: string) {
 
 /**
  * Invia un nuovo messaggio all'interno di una conversazione.
+ * Per i messaggi OUTBOUND, chiama la Graph API di Meta prima di salvare nel DB.
  */
 export async function sendMessage(data: SendMessageData) {
     const session = await auth();
@@ -75,11 +76,14 @@ export async function sendMessage(data: SendMessageData) {
         throw new Error(parsed.error.issues[0].message);
     }
 
-    // 1. Verifica che la conversazione esista e appartenga alla company
+    // 1. Verifica che la conversazione esista e appartenga alla company (includi il customer per il numero)
     const conversation = await prisma.conversation.findFirst({
         where: {
             id: parsed.data.conversationId,
             companyId: session.user.companyId,
+        },
+        include: {
+            customer: true,
         },
     });
 
@@ -87,9 +91,64 @@ export async function sendMessage(data: SendMessageData) {
         throw new Error("Conversation not found");
     }
 
-    // 2. Crea il nuovo messaggio
-    const direction = parsed.data.simulateInbound ? "INBOUND" : "OUTBOUND";
-    const status = parsed.data.simulateInbound ? "DELIVERED" : "SENT";
+    const isSimulated = parsed.data.simulateInbound;
+    let externalId: string | undefined;
+
+    // 2. Se è un messaggio OUTBOUND reale, invia tramite la Graph API di Meta
+    if (!isSimulated) {
+        // Recupera le credenziali WhatsApp della Company
+        const company = await prisma.company.findUnique({
+            where: { id: session.user.companyId },
+            select: { waPhoneNumberId: true, waAccessToken: true },
+        });
+
+        if (!company?.waPhoneNumberId || !company?.waAccessToken) {
+            throw new Error(
+                "WhatsApp non configurato. Vai nelle Impostazioni e inserisci le credenziali Meta."
+            );
+        }
+
+        // Formatta il numero del destinatario (Meta vuole il numero SENZA il '+')
+        const recipientPhone = conversation.customer.phoneE164.replace(/^\+/, "");
+
+        // Chiama la Graph API di Meta
+        const metaResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${company.waPhoneNumberId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${company.waAccessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: recipientPhone,
+                    type: "text",
+                    text: {
+                        body: parsed.data.content,
+                    },
+                }),
+            }
+        );
+
+        const metaResult = await metaResponse.json();
+
+        if (!metaResponse.ok) {
+            // Errore dalla Graph API (es. finestra 24h scaduta, numero non valido...)
+            const errorMsg =
+                metaResult?.error?.message ||
+                "Errore nell'invio del messaggio WhatsApp.";
+            console.error("[WhatsApp API] Errore:", metaResult);
+            throw new Error(`WhatsApp: ${errorMsg}`);
+        }
+
+        // Estrai l'ID del messaggio restituito da Meta
+        externalId = metaResult?.messages?.[0]?.id;
+    }
+
+    // 3. Salva il messaggio nel DB
+    const direction = isSimulated ? "INBOUND" : "OUTBOUND";
+    const status = isSimulated ? "DELIVERED" : "SENT";
 
     const newMessage = await prisma.message.create({
         data: {
@@ -99,21 +158,20 @@ export async function sendMessage(data: SendMessageData) {
             direction,
             content: parsed.data.content,
             status,
+            ...(externalId && { externalId }),
         },
     });
 
-    // 3. Aggiorna lastMessageAt della conversazione
+    // 4. Aggiorna lastMessageAt della conversazione
     await prisma.conversation.update({
         where: { id: conversation.id },
         data: {
             lastMessageAt: new Date(),
-            status: parsed.data.simulateInbound ? "OPEN" : "PENDING" // OPEN = da leggere, PENDING = stiamo aspettando una risposta
+            status: isSimulated ? "OPEN" : "PENDING",
         },
     });
 
     revalidatePath("/dashboard/inbox");
-
-    // NOTA MVP: In un sistema reale, qui si interfaccerà con l'API Meta/Twilio
 
     return newMessage;
 }

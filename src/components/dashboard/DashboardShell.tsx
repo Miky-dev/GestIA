@@ -14,6 +14,7 @@ import {
     ChevronDown,
     Settings,
     CheckSquare,
+    MessageCircle,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -129,6 +130,18 @@ export function DashboardShell({ children, userName, isEmailVerified = true }: D
                     >
                         <Settings className={cn("w-4 h-4", pathname?.startsWith("/dashboard/settings/automations") ? "text-zinc-900" : "text-zinc-400")} />
                         Automazioni
+                    </Link>
+                    <Link
+                        href="/dashboard/settings/whatsapp"
+                        className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                            pathname?.startsWith("/dashboard/settings/whatsapp")
+                                ? "bg-zinc-100 text-zinc-900"
+                                : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"
+                        )}
+                    >
+                        <MessageCircle className={cn("w-4 h-4", pathname?.startsWith("/dashboard/settings/whatsapp") ? "text-zinc-900" : "text-zinc-400")} />
+                        WhatsApp
                     </Link>
                 </div>
 

@@ -91,6 +91,11 @@ model Company {
   phoneNumber String?
   industry    String?
 
+  // WhatsApp Cloud API (Multi-Tenant)
+  waPhoneNumberId String?  @unique // ID univoco del numero fornito da Meta (routing)
+  waAccessToken   String?          // Token di accesso permanente per inviare messaggi
+  waVerifyToken   String?          // Stringa segreta per validare il webhook
+
   // Relazioni (Il Multi-tenant parte da qui)
   users            User[]
   customers        Customer[]

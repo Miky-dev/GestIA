@@ -26,7 +26,8 @@ const { auth } = NextAuth({
                 nextUrl.pathname.startsWith("/customers") ||
                 nextUrl.pathname.startsWith("/calendar") ||
                 (nextUrl.pathname.startsWith("/api") &&
-                    !nextUrl.pathname.startsWith("/api/auth"));
+                    !nextUrl.pathname.startsWith("/api/auth") &&
+                    !nextUrl.pathname.startsWith("/api/webhooks"));
 
             if (isProtected && !isLoggedIn) {
                 return false; // NextAuth redirecterà automaticamente a /login
@@ -45,6 +46,6 @@ export const config = {
         "/inbox/:path*",
         "/customers/:path*",
         "/calendar/:path*",
-        "/api/((?!auth).)*",
+        "/api/((?!auth|webhooks).)*",
     ],
 };
