@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { getConversationWithMessages, sendMessage } from "@/actions/inbox";
@@ -17,28 +17,48 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
     const [isSending, setIsSending] = useState(false);
     const [simulateInbound, setSimulateInbound] = useState(false); // 🔥 Dev Mode Toggle
     const scrollRef = useRef<HTMLDivElement>(null);
+    const prevMessageCountRef = useRef<number>(0);
 
-    // Caricamento iniziale messaggi
-    useEffect(() => {
-        let mounted = true;
-        const loadMessages = async () => {
-            setIsLoading(true);
-            try {
-                const data = await getConversationWithMessages(conversationId);
-                if (mounted) setConversation(data);
-            } catch (err) {
-                console.error("Errore nel caricamento dei messaggi:", err);
-            } finally {
-                if (mounted) setIsLoading(false);
+    // Funzione di caricamento messaggi riutilizzabile
+    const loadMessages = useCallback(async (showLoading = false) => {
+        if (showLoading) setIsLoading(true);
+        try {
+            const data = await getConversationWithMessages(conversationId);
+            if (data) {
+                const newCount = data.messages?.length || 0;
+                setConversation(data);
+                // Auto-scroll solo se ci sono nuovi messaggi
+                if (newCount > prevMessageCountRef.current) {
+                    setTimeout(() => {
+                        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+                    }, 100);
+                }
+                prevMessageCountRef.current = newCount;
             }
-        };
-
-        if (conversationId) {
-            loadMessages();
+        } catch (err) {
+            console.error("Errore nel caricamento dei messaggi:", err);
+        } finally {
+            if (showLoading) setIsLoading(false);
         }
-
-        return () => { mounted = false; };
     }, [conversationId]);
+
+    // Caricamento iniziale
+    useEffect(() => {
+        if (conversationId) {
+            loadMessages(true);
+        }
+    }, [conversationId, loadMessages]);
+
+    // Polling: aggiorna i messaggi ogni 5 secondi
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!isSending) {
+                loadMessages(false);
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [loadMessages, isSending]);
 
     // Scroll al fondo della chat ogni volta che i messaggi cambiano
     useEffect(() => {

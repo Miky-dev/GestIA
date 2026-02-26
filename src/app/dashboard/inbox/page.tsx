@@ -29,7 +29,22 @@ export default function InboxPage() {
             }
         };
         loadConversations();
-    }, [selectedConversationId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Polling: aggiorna la lista conversazioni ogni 5 secondi
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            try {
+                const data = await getConversations();
+                setConversations(data);
+            } catch (err) {
+                console.error("Errore polling conversazioni:", err);
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     const activeConversation = conversations.find(c => c.id === selectedConversationId);
 
