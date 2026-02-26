@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { getUnreadCount } from "@/actions/inbox";
 import {
     LayoutDashboard,
     Inbox,
@@ -69,6 +70,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, userName, isEmailVerified = true }: DashboardShellProps) {
     const pathname = usePathname();
+    const [unreadCount, setUnreadCount] = useState(0);
     const initials = userName
         ? userName
             .split(" ")
@@ -77,6 +79,19 @@ export function DashboardShell({ children, userName, isEmailVerified = true }: D
             .toUpperCase()
             .slice(0, 2)
         : "U";
+
+    // Polling contatore messaggi non letti ogni 5 secondi
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const count = await getUnreadCount();
+                setUnreadCount(count);
+            } catch { /* ignora errori */ }
+        };
+        fetchUnread();
+        const interval = setInterval(fetchUnread, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="flex h-screen bg-zinc-50">
@@ -96,6 +111,7 @@ export function DashboardShell({ children, userName, isEmailVerified = true }: D
                 <nav className="flex-1 p-3 space-y-0.5">
                     {navItems.map(({ href, label, icon: Icon }) => {
                         const isActive = pathname === href || pathname.startsWith(href + "/");
+                        const isInbox = href === "/dashboard/inbox";
                         return (
                             <Link
                                 key={href}
@@ -109,6 +125,11 @@ export function DashboardShell({ children, userName, isEmailVerified = true }: D
                             >
                                 <Icon className={cn("w-4 h-4", isActive ? "text-zinc-900" : "text-zinc-400")} />
                                 {label}
+                                {isInbox && unreadCount > 0 && (
+                                    <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-white bg-red-500 rounded-full">
+                                        {unreadCount > 99 ? "99+" : unreadCount}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}

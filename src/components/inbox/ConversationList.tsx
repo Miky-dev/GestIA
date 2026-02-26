@@ -43,6 +43,7 @@ export function ConversationList({ conversations, selectedId, onSelect, isLoadin
                     const customerName = conv.customer?.firstName + " " + conv.customer?.lastName;
                     const initials = customerName.substring(0, 2).toUpperCase();
                     const lastMessageText = conv.messages?.[0]?.content || "Inizia chat";
+                    const unreadCount = conv._count?.messages || 0;
 
                     return (
                         <button
@@ -56,16 +57,22 @@ export function ConversationList({ conversations, selectedId, onSelect, isLoadin
                             </Avatar>
                             <div className="flex-1 overflow-hidden">
                                 <div className="flex justify-between items-baseline mb-1">
-                                    <span className="font-semibold text-sm truncate">{customerName}</span>
+                                    <span className={`text-sm truncate ${unreadCount > 0 ? "font-bold text-slate-900" : "font-semibold"}`}>{customerName}</span>
                                     <span className="text-xs text-muted-foreground flex-shrink-0">
                                         {format(new Date(conv.lastMessageAt), "dd MMM, HH:mm", { locale: it })}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                    <p className="text-muted-foreground truncate max-w-[80%]">{lastMessageText}</p>
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <Phone size={12} />
-                                    </div>
+                                    <p className={`truncate max-w-[80%] ${unreadCount > 0 ? "text-slate-700 font-medium" : "text-muted-foreground"}`}>{lastMessageText}</p>
+                                    {unreadCount > 0 ? (
+                                        <span className="flex-shrink-0 ml-2 inline-flex items-center justify-center w-5 h-5 text-[11px] font-bold text-white bg-red-500 rounded-full">
+                                            {unreadCount > 9 ? "9+" : unreadCount}
+                                        </span>
+                                    ) : (
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Phone size={12} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </button>

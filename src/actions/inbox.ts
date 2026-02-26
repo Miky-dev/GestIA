@@ -25,8 +25,18 @@ export async function getConversations() {
                 orderBy: {
                     createdAt: "desc"
                 },
-                take: 1 // Prendiamo solo l'ultimo messaggio per l'anteprima nella sidebar
-            }
+                take: 1
+            },
+            _count: {
+                select: {
+                    messages: {
+                        where: {
+                            direction: "INBOUND",
+                            status: "DELIVERED",
+                        },
+                    },
+                },
+            },
         },
         orderBy: {
             lastMessageAt: "desc",
@@ -174,4 +184,46 @@ export async function sendMessage(data: SendMessageData) {
     revalidatePath("/dashboard/inbox");
 
     return newMessage;
+}
+
+/**
+ * Conta il totale dei messaggi non letti (inbound con status DELIVERED) per la company.
+ */
+export async function getUnreadCount() {
+    const session = await auth();
+    if (!session?.user?.companyId) {
+        return 0;
+    }
+
+    const count = await prisma.message.count({
+        where: {
+            companyId: session.user.companyId,
+            direction: "INBOUND",
+            status: "DELIVERED",
+        },
+    });
+
+    return count;
+}
+
+/**
+ * Segna tutti i messaggi inbound di una conversazione come letti (READ).
+ */
+export async function markConversationAsRead(conversationId: string) {
+    const session = await auth();
+    if (!session?.user?.companyId) {
+        throw new Error("Unauthorized");
+    }
+
+    await prisma.message.updateMany({
+        where: {
+            conversationId,
+            companyId: session.user.companyId,
+            direction: "INBOUND",
+            status: "DELIVERED",
+        },
+        data: {
+            status: "READ",
+        },
+    });
 }

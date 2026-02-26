@@ -4,15 +4,33 @@ import { useState, useEffect } from "react";
 import { ConversationList } from "@/components/inbox/ConversationList";
 import { MessageThread } from "@/components/inbox/MessageThread";
 import { CustomerSidebar } from "@/components/inbox/CustomerSidebar";
-import { getConversations } from "@/actions/inbox";
+import { getConversations, markConversationAsRead } from "@/actions/inbox";
 
-// Per ora usiamo un tipo "any" o interfacce base, potremmo importare i tipi di Prisma
-type ConversationPreview = { id: string; lastMessageAt: Date; channel: string; status: string; customerId: string; messages: unknown[]; customer: { firstName: string; lastName: string; phoneE164: string; email: string | null; vatNumber: string | null; }; };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ConversationPreview = { id: string; lastMessageAt: Date; channel: string; status: string; customerId: string; messages: unknown[]; customer: { firstName: string; lastName: string; phoneE164: string; email: string | null; vatNumber: string | null; }; _count?: { messages: number }; };
 
 export default function InboxPage() {
     const [conversations, setConversations] = useState<ConversationPreview[]>([]);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const handleSelect = async (id: string) => {
+        setSelectedConversationId(id);
+        // Segna i messaggi della conversazione come letti
+        try {
+            await markConversationAsRead(id);
+            // Aggiorna il contatore nella lista conversazioni
+            setConversations(prev =>
+                prev.map(c =>
+                    c.id === id
+                        ? { ...c, _count: { ...c._count, messages: 0 } }
+                        : c
+                )
+            );
+        } catch (err) {
+            console.error("Errore nel marcare come letto:", err);
+        }
+    };
 
     useEffect(() => {
         const loadConversations = async () => {
@@ -55,7 +73,7 @@ export default function InboxPage() {
                 <ConversationList
                     conversations={conversations}
                     selectedId={selectedConversationId}
-                    onSelect={setSelectedConversationId}
+                    onSelect={handleSelect}
                     isLoading={isLoading}
                 />
             </div>
