@@ -69,13 +69,12 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
                 }
             }),
 
-            // 3. Messaggi da leggere / Conversazioni Aperte o Pendenti
-            prisma.conversation.count({
+            // 3. Messaggi non letti (INBOUND con status DELIVERED = non ancora aperti)
+            prisma.message.count({
                 where: {
                     companyId,
-                    status: {
-                        in: ["OPEN", "PENDING"]
-                    }
+                    direction: "INBOUND",
+                    status: "DELIVERED",
                 }
             }),
 
