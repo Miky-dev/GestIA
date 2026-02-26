@@ -1,52 +1,45 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import NextAuth from "next-auth";
 
-// Rotte che richiedono autenticazione
-const PROTECTED_PATHS = ["/dashboard", "/inbox", "/customers", "/calendar"];
+/**
+ * Configurazione LEGGERA solo per il Middleware (Edge Runtime).
+ *
+ * NON importa bcryptjs, Prisma o il provider Credentials completo,
+ * così il bundle resta sotto il limite di 1 MB di Vercel.
+ *
+ * Controlla solo se esiste un JWT valido nel cookie di sessione.
+ */
+const { auth } = NextAuth({
+    providers: [], // Nessun provider qui — il login è gestito dalla config completa in auth.ts
+    pages: {
+        signIn: "/login",
+        error: "/login",
+    },
+    session: {
+        strategy: "jwt",
+    },
+    callbacks: {
+        authorized({ auth: session, request: { nextUrl } }) {
+            const isLoggedIn = !!session?.user;
+            const isProtected =
+                nextUrl.pathname.startsWith("/dashboard") ||
+                nextUrl.pathname.startsWith("/inbox") ||
+                nextUrl.pathname.startsWith("/customers") ||
+                nextUrl.pathname.startsWith("/calendar") ||
+                (nextUrl.pathname.startsWith("/api") &&
+                    !nextUrl.pathname.startsWith("/api/auth"));
 
-// Rotte API protette (eccetto /api/auth che gestisce il login stesso)
-const PROTECTED_API_PREFIX = "/api";
-const AUTH_API_PREFIX = "/api/auth";
+            if (isProtected && !isLoggedIn) {
+                return false; // NextAuth redirecterà automaticamente a /login
+            }
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
-    const { pathname } = request.nextUrl;
+            return true;
+        },
+    },
+});
 
-    // Controlla se la rotta è protetta
-    const isProtectedPage = PROTECTED_PATHS.some((path) =>
-        pathname.startsWith(path)
-    );
-    const isProtectedApi =
-        pathname.startsWith(PROTECTED_API_PREFIX) &&
-        !pathname.startsWith(AUTH_API_PREFIX);
-
-    if (!isProtectedPage && !isProtectedApi) {
-        return NextResponse.next();
-    }
-
-    // Verifica la sessione
-    const session = await auth();
-
-    if (!session) {
-        // Pagine: redirect a /login con ?callbackUrl per tornare dopo il login
-        if (isProtectedPage) {
-            const loginUrl = new URL("/login", request.url);
-            loginUrl.searchParams.set("callbackUrl", pathname);
-            return NextResponse.redirect(loginUrl);
-        }
-
-        // API: restituisce 401 JSON
-        return NextResponse.json(
-            { error: "Non autorizzato. Effettua il login." },
-            { status: 401 }
-        );
-    }
-
-    return NextResponse.next();
-}
+export default auth;
 
 export const config = {
-    // Esegue il middleware solo sulle rotte rilevanti, esclude file statici
     matcher: [
         "/dashboard/:path*",
         "/inbox/:path*",
