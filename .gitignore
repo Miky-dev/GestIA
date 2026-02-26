@@ -11,7 +11,7 @@ out/
 build/
 dist/
 
-# File di ambiente
+# File di ambientee
 .env
 .env.local
 .env.development.local
