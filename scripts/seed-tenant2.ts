@@ -15,7 +15,7 @@ async function main() {
         create: {
             id: "company-test-002",
             name: "Seconda Azienda Demo",
-            subscriptionPlan: "STARTER",
+            subscriptionPlan: "STANDARD",
             subscriptionStatus: "TRIAL",
         },
     });

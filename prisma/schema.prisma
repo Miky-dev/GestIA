@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ==========================================
@@ -12,14 +13,14 @@ datasource db {
 // ==========================================
 
 enum SubscriptionPlan {
-  STARTER
+  STANDARD
   PRO
-  ENTERPRISE
 }
 
 enum SubscriptionStatus {
   TRIAL
   ACTIVE
+  PAST_DUE
   CANCELLED
 }
 
@@ -81,7 +82,7 @@ enum TaskStatus {
 model Company {
   id                 String             @id @default(uuid())
   name               String
-  subscriptionPlan   SubscriptionPlan   @default(STARTER)
+  subscriptionPlan   SubscriptionPlan   @default(STANDARD)
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -95,6 +96,12 @@ model Company {
   waPhoneNumberId String?  @unique // ID univoco del numero fornito da Meta (routing)
   waAccessToken   String?          // Token di accesso permanente per inviare messaggi
   waVerifyToken   String?          // Stringa segreta per validare il webhook
+
+  // Stripe Billing
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
 
   // Relazioni (Il Multi-tenant parte da qui)
   users            User[]

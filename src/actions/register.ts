@@ -94,7 +94,7 @@ export async function registerCompany(rawData: RegisterInput): Promise<RegisterR
             const company = await tx.company.create({
                 data: {
                     name: companyName,
-                    subscriptionPlan: 'STARTER',
+                    subscriptionPlan: 'STANDARD',
                     subscriptionStatus: 'TRIAL',
                     vatNumber: vatNumber || null,
                     phoneNumber: phoneNumber || null,
